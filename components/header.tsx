@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 
 const SECTION_LABELS: Record<string, string> = {
   "": "Dashboard",
+  dashboard: "Dashboard",
   parties: "Parties",
   products: "Products",
   visits: "Visits",

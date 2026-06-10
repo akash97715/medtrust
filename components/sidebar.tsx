@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 const mainLinks = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/parties", label: "Parties", icon: Users },
   { href: "/products", label: "Products", icon: Package },
   { href: "/visits", label: "Visits", icon: CalendarCheck },
@@ -38,7 +38,7 @@ export function Sidebar() {
           Operations
         </p>
         {mainLinks.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || (href !== "/" && pathname.startsWith(href));
+          const active = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link
               key={href}
@@ -101,7 +101,7 @@ export function MobileNav() {
   const [showMore, setShowMore] = useState(false);
 
   const primaryLinks = [
-    { href: "/", label: "Home", icon: LayoutDashboard },
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/parties", label: "Parties", icon: Users },
     { href: "/visits", label: "Visits", icon: CalendarCheck },
     { href: "/orders", label: "Orders", icon: ShoppingCart },
@@ -131,7 +131,7 @@ export function MobileNav() {
             onClick={(e) => e.stopPropagation()}
           >
             {moreLinks.map(({ href, label, icon: Icon }) => {
-              const active = pathname === href || (href !== "/" && pathname.startsWith(href));
+              const active = pathname === href || pathname.startsWith(href + "/");
               return (
                 <Link
                   key={href}
@@ -154,7 +154,7 @@ export function MobileNav() {
       {/* Bottom nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0c1220] border-t border-white/5 flex justify-around px-2 py-2">
         {primaryLinks.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || (href !== "/" && pathname.startsWith(href));
+          const active = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link
               key={href}
