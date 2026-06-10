@@ -26,7 +26,10 @@ export default function AddOrderPage() {
   const router = useRouter();
   const { data: parties, isLoading: lp } = useQuery({ queryKey: ["parties"], queryFn: () => getParties() });
   const { data: products, isLoading: lprod } = useQuery({ queryKey: ["products"], queryFn: getProducts });
-  const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<any>({
+    defaultValues: { order_status: "confirmed", unit_of_measure: "piece" },
+  });
 
   const mut = useMutation({
     mutationFn: createOrder,

@@ -23,10 +23,17 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 export default function AddPartyPage() {
   const qc = useQueryClient();
   const router = useRouter();
-  const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<any>({
+    defaultValues: {
+      party_type: "hospital",
+      district: "West Champaran",
+      state: "Bihar",
+    },
+  });
 
   const mut = useMutation({
-    mutationFn: createParty,
+    mutationFn: (v: Record<string, unknown>) => createParty(cleanPayload(v)),
     onSuccess: (data) => {
       toast.success("Party saved");
       qc.invalidateQueries({ queryKey: ["parties"] });
@@ -43,7 +50,7 @@ export default function AddPartyPage() {
         <p className="text-slate-500 text-sm mt-0.5">पार्टी जोड़ें · Hospital, agency or clinic</p>
       </div>
 
-      <form onSubmit={handleSubmit((v) => mut.mutate(cleanPayload(v as Record<string, unknown>)))} className="space-y-4">
+      <form onSubmit={handleSubmit((v) => mut.mutate(v as Record<string, unknown>))} className="space-y-4">
         <Field label="Party type *" hint="खरीदार का प्रकार चुनें">
           <Select onValueChange={(v) => setValue("party_type", v)} defaultValue="hospital">
             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -73,15 +80,16 @@ export default function AddPartyPage() {
         <div className="grid grid-cols-2 gap-3">
           <Field label="City *" hint="Route planning के लिए">
             <Input {...register("city", { required: true })} />
+            {errors.city && <p className="text-xs text-red-500 mt-0.5">City is required</p>}
           </Field>
           <Field label="District">
-            <Input {...register("district")} defaultValue="West Champaran" />
+            <Input {...register("district")} />
           </Field>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="State">
-            <Input {...register("state")} defaultValue="Bihar" />
+            <Input {...register("state")} />
           </Field>
           <Field label="Distance from base (km)">
             <Input type="number" step="0.01" {...register("distance_from_base_km")} placeholder="22" />

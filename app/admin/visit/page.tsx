@@ -25,7 +25,13 @@ export default function AddVisitPage() {
   const qc = useQueryClient();
   const router = useRouter();
   const { data: parties, isLoading } = useQuery({ queryKey: ["parties"], queryFn: () => getParties() });
-  const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<any>({
+    defaultValues: {
+      visit_purpose: "regular_visit",
+      visit_status: "completed",
+    },
+  });
 
   const mut = useMutation({
     mutationFn: (v: Record<string, unknown>) => createVisit(cleanPayload(v)),
@@ -35,7 +41,6 @@ export default function AddVisitPage() {
       reset();
       router.push(`/parties/${(data as { party_id: string }).party_id}`);
     },
-
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -65,6 +70,7 @@ export default function AddVisitPage() {
 
         <Field label="Visit date *">
           <Input type="date" {...register("visit_date", { required: true })} />
+          {errors.visit_date && <p className="text-xs text-red-500 mt-0.5">Date is required</p>}
         </Field>
 
         <div className="grid grid-cols-2 gap-3">

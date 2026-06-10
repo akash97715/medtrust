@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, HeartPulse } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 const SECTION_LABELS: Record<string, string> = {
   "": "Dashboard",
@@ -39,36 +39,52 @@ export function Header() {
       : "Details";
 
   return (
-    <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-slate-100 h-14 flex items-center px-4 md:px-8 gap-3 shrink-0">
-      {isSubPage && (
-        <button
-          onClick={() => router.back()}
-          className="flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-        >
-          <ArrowLeft size={17} />
-        </button>
-      )}
-
-      <div className="md:hidden flex items-center gap-2">
-        <div className="flex items-center justify-center w-6 h-6 rounded-md bg-teal-500/15">
-          <HeartPulse size={14} className="text-teal-600" />
+    <header className="sticky top-0 z-20 bg-white border-b border-slate-100 h-16 flex items-center px-4 md:px-8 shrink-0">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        {/* Mobile logo */}
+        <div className="md:hidden flex items-center gap-2.5 mr-1">
+          <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-teal-500 shadow-sm shadow-teal-500/30">
+            <span className="text-white font-black text-xs">M</span>
+          </div>
+          <span className="font-bold text-[15px] text-slate-900 tracking-tight">MedTrust</span>
         </div>
-        <span className="font-semibold text-sm text-slate-800">MedTrust</span>
+
+        {/* Back button — prominent on mobile */}
+        {isSubPage && (
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors px-2 py-1.5 rounded-lg hover:bg-slate-100 -ml-1"
+          >
+            <ArrowLeft size={15} />
+            <span className="hidden sm:inline">
+              {SECTION_LABELS[section] ?? "Back"}
+            </span>
+          </button>
+        )}
+
+        {/* Breadcrumb / title */}
+        <div className="flex items-center gap-2 min-w-0">
+          {isSubPage ? (
+            <>
+              <span className="hidden sm:inline text-slate-300">/</span>
+              <span className="text-slate-800 font-semibold text-sm truncate">{subLabel}</span>
+            </>
+          ) : (
+            <span className="hidden md:block font-semibold text-slate-800 text-sm">{sectionLabel}</span>
+          )}
+        </div>
       </div>
 
-      <div className="flex items-center gap-1.5 text-sm">
-        {isSubPage ? (
-          <>
-            <Link href={parentHref} className="text-slate-400 hover:text-teal-600 transition-colors font-medium">
-              {SECTION_LABELS[section]}
-            </Link>
-            <span className="text-slate-300">/</span>
-            <span className="text-slate-700 font-medium">{subLabel}</span>
-          </>
-        ) : (
-          <span className="font-semibold text-slate-800">{sectionLabel}</span>
-        )}
-      </div>
+      {/* Right: breadcrumb path on desktop */}
+      {isSubPage && (
+        <div className="hidden md:flex items-center gap-1.5 text-xs text-slate-400">
+          <Link href={parentHref} className="hover:text-teal-600 transition-colors font-medium">
+            {SECTION_LABELS[section]}
+          </Link>
+          <span>/</span>
+          <span className="text-slate-600 font-medium">{subLabel}</span>
+        </div>
+      )}
     </header>
   );
 }
