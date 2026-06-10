@@ -5,7 +5,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Users, Package, CalendarCheck, ShoppingCart,
-  DollarSign, PlusCircle, MoreHorizontal, X,
+  DollarSign, PlusCircle, MoreHorizontal, X, Building2,
 } from "lucide-react";
 
 const mainLinks = [
@@ -59,7 +59,19 @@ export function Sidebar() {
           );
         })}
 
-        <div className="mt-5 pt-4 border-t border-white/5">
+        <div className="mt-5 pt-4 border-t border-white/5 space-y-0.5">
+          <Link
+            href="/company"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-150",
+              pathname.startsWith("/company")
+                ? "bg-white/8 text-white"
+                : "text-white/40 hover:bg-white/5 hover:text-white/70"
+            )}
+          >
+            <Building2 size={15} className={pathname.startsWith("/company") ? "text-teal-400" : ""} />
+            Company
+          </Link>
           <Link
             href="/admin"
             className={cn(
@@ -98,6 +110,7 @@ export function MobileNav() {
   const moreLinks = [
     { href: "/products", label: "Products", icon: Package },
     { href: "/pricing", label: "Pricing", icon: DollarSign },
+    { href: "/company", label: "Company", icon: Building2 },
     { href: "/admin", label: "Add Data", icon: PlusCircle },
   ];
 

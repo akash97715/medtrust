@@ -11,6 +11,7 @@ const SECTION_LABELS: Record<string, string> = {
   orders: "Orders",
   pricing: "Pricing",
   admin: "Add Data",
+  company: "Company",
 };
 
 const ADMIN_SUB_LABELS: Record<string, string> = {
