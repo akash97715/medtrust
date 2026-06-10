@@ -45,7 +45,7 @@ export default function LandingPage() {
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
 
         {/* LEFT HERO */}
-        <div className="md:w-[40%] shrink-0 relative flex flex-col justify-end overflow-hidden border-b md:border-b-0 md:border-r border-white/8">
+        <div className="md:w-[40%] shrink-0 relative flex flex-col justify-end overflow-hidden border-b-2 md:border-b-0 md:border-r-2 border-white/20">
           <Image src={IMGS.hero} alt="Medical professional" fill className="object-cover object-center" priority />
           {/* Stronger gradient for text legibility */}
           <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f1c] via-[#0a0f1c]/80 to-[#0a0f1c]/25" />
@@ -109,7 +109,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-2 gap-3 h-full" style={{ gridTemplateRows: "1fr 1fr auto" }}>
 
             {/* Card 1 — Products */}
-            <Link href="/products" className="group relative rounded-2xl overflow-hidden border border-white/10 hover:border-teal-400/60 transition-all duration-200 min-h-[140px]">
+            <Link href="/products" className="group relative rounded-2xl overflow-hidden border-2 border-white/20 hover:border-teal-400/70 transition-all duration-200 min-h-[140px]">
               <Image src={IMGS.products} alt="Medical products" fill className="object-cover object-center group-hover:scale-105 transition-transform duration-500" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/10" />
               <div className="absolute inset-0 p-4 flex flex-col justify-between">
@@ -127,7 +127,7 @@ export default function LandingPage() {
             </Link>
 
             {/* Card 2 — Surgical */}
-            <Link href="/products" className="group relative rounded-2xl overflow-hidden border border-white/10 hover:border-indigo-400/60 transition-all duration-200 min-h-[140px]">
+            <Link href="/products" className="group relative rounded-2xl overflow-hidden border-2 border-white/20 hover:border-indigo-400/70 transition-all duration-200 min-h-[140px]">
               <Image src={IMGS.surgical} alt="Surgical instruments" fill className="object-cover object-center group-hover:scale-105 transition-transform duration-500" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/10" />
               <div className="absolute inset-0 p-4 flex flex-col justify-between">
@@ -145,7 +145,7 @@ export default function LandingPage() {
             </Link>
 
             {/* Card 3 — Why Choose Us */}
-            <div className="group relative rounded-2xl overflow-hidden border border-white/10 min-h-[140px]">
+            <div className="group relative rounded-2xl overflow-hidden border-2 border-white/20 min-h-[140px]">
               <Image src={IMGS.hospital} alt="Hospital" fill className="object-cover object-center" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/92 via-black/65 to-black/20" />
               <div className="absolute inset-0 p-4 flex flex-col justify-between">
@@ -171,7 +171,7 @@ export default function LandingPage() {
             </div>
 
             {/* Card 4 — Dashboard */}
-            <Link href="/dashboard" className="group relative rounded-2xl overflow-hidden border border-white/10 hover:border-teal-400/60 transition-all duration-200 min-h-[140px]">
+            <Link href="/dashboard" className="group relative rounded-2xl overflow-hidden border-2 border-white/20 hover:border-teal-400/70 transition-all duration-200 min-h-[140px]">
               <Image src={IMGS.doctor} alt="Healthcare professional" fill className="object-cover object-center group-hover:scale-105 transition-transform duration-500" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-black/15" />
               <div className="absolute inset-0 p-4 flex flex-col justify-between">
@@ -189,7 +189,7 @@ export default function LandingPage() {
             </Link>
 
             {/* Card 5 — Company (full width) */}
-            <Link href="/company" className="group col-span-2 relative rounded-2xl overflow-hidden border border-white/10 hover:border-white/25 transition-all duration-200 h-12">
+            <Link href="/company" className="group col-span-2 relative rounded-2xl overflow-hidden border-2 border-white/20 hover:border-white/40 transition-all duration-200 h-12">
               <div className="absolute inset-0 bg-white/5 group-hover:bg-white/8 transition-colors" />
               <div className="relative h-full flex items-center justify-between px-5">
                 <div className="flex items-center gap-3">
