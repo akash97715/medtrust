@@ -1,6 +1,7 @@
 "use client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createProduct } from "@/lib/api";
+import { cleanPayload } from "@/lib/utils";
 import { useForm } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,7 @@ export default function AddProductPage() {
         <p className="text-slate-500 text-sm mt-0.5">उत्पाद जोड़ें · Surgical or medical item</p>
       </div>
 
-      <form onSubmit={handleSubmit((v) => mut.mutate(v))} className="space-y-4">
+      <form onSubmit={handleSubmit((v) => mut.mutate(cleanPayload(v as Record<string, unknown>)))} className="space-y-4">
         <Field label="Product name *" hint="एक standard नाम — visits और orders में reuse होगा">
           <Input {...register("product_name", { required: true })} placeholder="e.g. IV Cannula 20G" />
           {errors.product_name && <p className="text-xs text-red-500 mt-0.5">Product name is required</p>}

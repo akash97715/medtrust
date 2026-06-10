@@ -1,6 +1,7 @@
 "use client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getParties, getProducts, createOrder } from "@/lib/api";
+import { cleanPayload } from "@/lib/utils";
 import { useForm } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -50,7 +51,7 @@ export default function AddOrderPage() {
         <p className="text-xs text-amber-600 mt-0.5">Saving updates party-wise product pricing automatically.</p>
       </div>
 
-      <form onSubmit={handleSubmit((v) => mut.mutate(v))} className="space-y-4">
+      <form onSubmit={handleSubmit((v) => mut.mutate(cleanPayload(v as Record<string, unknown>)))} className="space-y-4">
         <Field label="Party *">
           {lp ? <Skeleton className="h-10" /> : (
             <Select onValueChange={(v) => setValue("party_id", v)}>

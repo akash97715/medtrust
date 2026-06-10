@@ -1,6 +1,7 @@
 "use client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createParty } from "@/lib/api";
+import { cleanPayload } from "@/lib/utils";
 import { useForm } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,7 @@ export default function AddPartyPage() {
         <p className="text-slate-500 text-sm mt-0.5">पार्टी जोड़ें · Hospital, agency or clinic</p>
       </div>
 
-      <form onSubmit={handleSubmit((v) => mut.mutate(v))} className="space-y-4">
+      <form onSubmit={handleSubmit((v) => mut.mutate(cleanPayload(v as Record<string, unknown>)))} className="space-y-4">
         <Field label="Party type *" hint="खरीदार का प्रकार चुनें">
           <Select onValueChange={(v) => setValue("party_type", v)} defaultValue="hospital">
             <SelectTrigger><SelectValue /></SelectTrigger>

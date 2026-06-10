@@ -1,6 +1,7 @@
 "use client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getParties, createVisit } from "@/lib/api";
+import { cleanPayload } from "@/lib/utils";
 import { useForm } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -27,13 +28,14 @@ export default function AddVisitPage() {
   const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm();
 
   const mut = useMutation({
-    mutationFn: createVisit,
+    mutationFn: (v: Record<string, unknown>) => createVisit(cleanPayload(v)),
     onSuccess: (data) => {
       toast.success("Visit saved");
       qc.invalidateQueries({ queryKey: ["visits"] });
       reset();
       router.push(`/parties/${(data as { party_id: string }).party_id}`);
     },
+
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -44,7 +46,7 @@ export default function AddVisitPage() {
         <p className="text-slate-500 text-sm mt-0.5">विज़िट दर्ज करें · Record a field visit</p>
       </div>
 
-      <form onSubmit={handleSubmit((v) => mut.mutate(v))} className="space-y-4">
+      <form onSubmit={handleSubmit((v) => mut.mutate(v as Record<string, unknown>))} className="space-y-4">
         <Field label="Party *" hint="किस hospital या agency को visit किया">
           {isLoading ? <Skeleton className="h-10" /> : (
             <Select onValueChange={(v) => setValue("party_id", v)}>

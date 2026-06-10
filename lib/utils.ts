@@ -18,3 +18,9 @@ export function fmt(value: unknown): string {
   if (value == null) return "—";
   return String(value);
 }
+
+export function cleanPayload(data: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(data).map(([k, v]) => [k, v === "" ? null : v])
+  );
+}
