@@ -13,6 +13,13 @@ const SECTION_LABELS: Record<string, string> = {
   admin: "Add Data",
 };
 
+const ADMIN_SUB_LABELS: Record<string, string> = {
+  party: "Add Party",
+  product: "Add Product",
+  visit: "Log Visit",
+  order: "Add Order",
+};
+
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
@@ -22,7 +29,14 @@ export function Header() {
   const sectionLabel = SECTION_LABELS[section] ?? "MedTrust";
   const isSubPage = segments.length >= 2;
   const parentHref = section ? `/${section}` : "/";
-  const subLabel = segments[segments.length - 1] === "edit" ? "Edit" : "Details";
+
+  const lastSeg = segments[segments.length - 1];
+  const subLabel =
+    section === "admin" && ADMIN_SUB_LABELS[lastSeg]
+      ? ADMIN_SUB_LABELS[lastSeg]
+      : lastSeg === "edit"
+      ? "Edit"
+      : "Details";
 
   return (
     <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-slate-100 h-14 flex items-center px-4 md:px-8 gap-3 shrink-0">
