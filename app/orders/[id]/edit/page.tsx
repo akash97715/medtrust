@@ -93,7 +93,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
   const router = useRouter();
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["order", id], queryFn: () => getOrder(id) });
-  const { register, handleSubmit, setValue, reset } = useForm();
+  const { register, handleSubmit, setValue, reset, watch } = useForm();
 
   useEffect(() => {
     if (data) {
@@ -141,7 +141,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
                   </div>
                   <div>
                     <label className="text-sm font-medium text-slate-700 block mb-1">Status</label>
-                    <Select onValueChange={(v) => setValue("order_status", v)} defaultValue={String(o?.order_status ?? "confirmed")}>
+                    <Select onValueChange={(v) => setValue("order_status", v)} value={watch("order_status") ?? String(o?.order_status ?? "confirmed")}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="draft">Draft</SelectItem>

@@ -24,7 +24,7 @@ export default function EditVisitPage({ params }: { params: Promise<{ id: string
   const router = useRouter();
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["visit", id], queryFn: () => getVisit(id) });
-  const { register, handleSubmit, setValue, reset } = useForm();
+  const { register, handleSubmit, setValue, reset, watch } = useForm();
 
   useEffect(() => {
     if (data) {
@@ -83,7 +83,7 @@ export default function EditVisitPage({ params }: { params: Promise<{ id: string
                   </div>
                   <div>
                     <label className="text-sm font-medium text-slate-700 block mb-1">Purpose</label>
-                    <Select onValueChange={(v) => setValue("visit_purpose", v)} defaultValue={String(v?.visit_purpose ?? "regular_visit")}>
+                    <Select onValueChange={(v) => setValue("visit_purpose", v)} value={watch("visit_purpose") ?? String(v?.visit_purpose ?? "regular_visit")}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="regular_visit">Regular visit</SelectItem>
@@ -97,7 +97,7 @@ export default function EditVisitPage({ params }: { params: Promise<{ id: string
                   </div>
                   <div>
                     <label className="text-sm font-medium text-slate-700 block mb-1">Status</label>
-                    <Select onValueChange={(v) => setValue("visit_status", v)} defaultValue={String(v?.visit_status ?? "completed")}>
+                    <Select onValueChange={(v) => setValue("visit_status", v)} value={watch("visit_status") ?? String(v?.visit_status ?? "completed")}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="completed">Completed</SelectItem>
