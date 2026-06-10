@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Users, Package, CalendarCheck, ShoppingCart,
-  DollarSign, PlusCircle,
+  DollarSign, PlusCircle, MoreHorizontal, X,
 } from "lucide-react";
 
 const mainLinks = [
@@ -85,33 +86,89 @@ export function Sidebar() {
 
 export function MobileNav() {
   const pathname = usePathname();
-  const mobileLinks = [
+  const [showMore, setShowMore] = useState(false);
+
+  const primaryLinks = [
     { href: "/", label: "Home", icon: LayoutDashboard },
     { href: "/parties", label: "Parties", icon: Users },
     { href: "/visits", label: "Visits", icon: CalendarCheck },
     { href: "/orders", label: "Orders", icon: ShoppingCart },
-    { href: "/admin", label: "Add", icon: PlusCircle },
   ];
+
+  const moreLinks = [
+    { href: "/products", label: "Products", icon: Package },
+    { href: "/pricing", label: "Pricing", icon: DollarSign },
+    { href: "/admin", label: "Add Data", icon: PlusCircle },
+  ];
+
+  const allMoreActive = moreLinks.some(
+    ({ href }) => pathname === href || pathname.startsWith(href)
+  );
+
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#0c1220] border-t border-white/5 flex justify-around px-2 py-2">
-      {mobileLinks.map(({ href, label, icon: Icon }) => {
-        const active = pathname === href || (href !== "/" && pathname.startsWith(href));
-        return (
-          <Link
-            key={href}
-            href={href}
-            className={cn(
-              "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-medium transition-all",
-              active
-                ? "text-teal-400 bg-white/5"
-                : "text-white/30 hover:text-white/60"
-            )}
+    <>
+      {/* More menu overlay */}
+      {showMore && (
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+          onClick={() => setShowMore(false)}
+        >
+          <div
+            className="absolute bottom-20 left-3 right-3 bg-[#0c1220] border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
           >
-            <Icon size={18} />
-            {label}
-          </Link>
-        );
-      })}
-    </nav>
+            {moreLinks.map(({ href, label, icon: Icon }) => {
+              const active = pathname === href || (href !== "/" && pathname.startsWith(href));
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setShowMore(false)}
+                  className={cn(
+                    "flex items-center gap-4 px-5 py-4 text-sm font-medium border-b border-white/5 last:border-0 transition-colors",
+                    active ? "text-teal-400 bg-white/5" : "text-white/60 hover:text-white hover:bg-white/5"
+                  )}
+                >
+                  <Icon size={18} />
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Bottom nav */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0c1220] border-t border-white/5 flex justify-around px-2 py-2">
+        {primaryLinks.map(({ href, label, icon: Icon }) => {
+          const active = pathname === href || (href !== "/" && pathname.startsWith(href));
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-medium transition-all",
+                active ? "text-teal-400 bg-white/5" : "text-white/30 hover:text-white/60"
+              )}
+            >
+              <Icon size={18} />
+              {label}
+            </Link>
+          );
+        })}
+
+        {/* More button */}
+        <button
+          onClick={() => setShowMore((v) => !v)}
+          className={cn(
+            "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-medium transition-all",
+            showMore || allMoreActive ? "text-teal-400 bg-white/5" : "text-white/30 hover:text-white/60"
+          )}
+        >
+          {showMore ? <X size={18} /> : <MoreHorizontal size={18} />}
+          More
+        </button>
+      </nav>
+    </>
   );
 }
