@@ -54,15 +54,15 @@ export default function DashboardPage() {
       {/* System overview */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
-          { icon: "🏥", title: "Parties — पार्टियाँ", desc: "Hospitals, agencies and clinics you visit and supply to. Each party has a full profile with visit history, demand, and order records." },
-          { icon: "💊", title: "Products — उत्पाद", desc: "Surgical and medical items master list. Add each product once; reuse it across visits and orders. Track demand vs actual orders." },
-          { icon: "📋", title: "Visits & Orders — विज़िट और ऑर्डर", desc: "Log every field visit with what was needed. Convert demand to confirmed orders with buy/sell rates. Pricing auto-updates on each order." },
+          { icon: "🏥", title: "Parties — पार्टियाँ", desc: "Hospitals, agencies and clinics you visit and supply to. Each party has a full profile with visit history, demand, and order records.", href: "/parties" },
+          { icon: "💊", title: "Products — उत्पाद", desc: "Surgical and medical items master list. Add each product once; reuse it across visits and orders. Track demand vs actual orders.", href: "/products" },
+          { icon: "📋", title: "Visits & Orders — विज़िट और ऑर्डर", desc: "Log every field visit with what was needed. Convert demand to confirmed orders with buy/sell rates. Pricing auto-updates on each order.", href: "/visits" },
         ].map((c) => (
-          <div key={c.title} className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
+          <Link key={c.title} href={c.href} className="group bg-white rounded-xl border border-slate-100 p-4 shadow-sm hover:border-teal-200 hover:shadow-md transition-all duration-150 block">
             <p className="text-xl mb-1">{c.icon}</p>
-            <p className="font-semibold text-sm text-slate-700 mb-1">{c.title}</p>
+            <p className="font-semibold text-sm text-slate-700 mb-1 group-hover:text-teal-700 transition-colors">{c.title}</p>
             <p className="text-xs text-slate-500 leading-relaxed">{c.desc}</p>
-          </div>
+          </Link>
         ))}
       </div>
 
