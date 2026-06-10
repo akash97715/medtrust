@@ -8,24 +8,30 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid,
 } from "recharts";
-import { Users, Package, CalendarCheck, ShoppingCart, Building2, Briefcase, TrendingUp } from "lucide-react";
+import { Users, Package, CalendarCheck, ShoppingCart, Building2, Briefcase, TrendingUp, ArrowUpRight } from "lucide-react";
+import Link from "next/link";
 
-function StatCard({ label, value, icon: Icon, sub }: { label: string; value: unknown; icon: React.ElementType; sub?: string }) {
+function StatCard({ label, value, icon: Icon, insight, href }: { label: string; value: unknown; icon: React.ElementType; insight?: string; href: string }) {
   return (
-    <Card>
-      <CardContent className="pt-5">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm text-slate-500 font-medium">{label}</p>
-            <p className="text-2xl font-bold mt-1">{String(value ?? "—")}</p>
-            {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+    <Link href={href} className="block group">
+      <Card className="transition-all duration-150 hover:border-teal-200 hover:shadow-md group-hover:bg-slate-50/50">
+        <CardContent className="pt-5">
+          <div className="flex items-start justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide">{label}</p>
+              <p className="text-2xl font-bold mt-1 text-slate-800">{String(value ?? "—")}</p>
+              {insight && <p className="text-xs text-teal-600 font-medium mt-1">{insight}</p>}
+            </div>
+            <div className="flex flex-col items-end gap-2 ml-3">
+              <div className="bg-teal-50 p-2.5 rounded-lg group-hover:bg-teal-100 transition-colors">
+                <Icon size={18} className="text-teal-600" />
+              </div>
+              <ArrowUpRight size={13} className="text-slate-300 group-hover:text-teal-400 transition-colors" />
+            </div>
           </div>
-          <div className="bg-teal-50 p-2.5 rounded-lg">
-            <Icon size={20} className="text-teal-600" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
 
@@ -62,13 +68,55 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {ls ? Array(7).fill(0).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />) : (<>
-          <StatCard label="Total Parties" value={s?.total_parties} icon={Users} />
-          <StatCard label="Hospitals" value={s?.total_hospitals} icon={Building2} />
-          <StatCard label="Agencies" value={s?.total_agencies} icon={Briefcase} />
-          <StatCard label="Products" value={s?.total_products} icon={Package} />
-          <StatCard label="Visits" value={s?.total_visits} icon={CalendarCheck} />
-          <StatCard label="Confirmed Orders" value={s?.total_orders} icon={ShoppingCart} />
-          <StatCard label="Confirmed Value" value={money(s?.total_order_value)} icon={TrendingUp} sub="sell rate basis" />
+          <StatCard
+            label="Total Parties"
+            value={s?.total_parties}
+            icon={Users}
+            href="/parties"
+            insight={s ? `${s.total_hospitals} hospitals · ${s.total_agencies} agencies` : undefined}
+          />
+          <StatCard
+            label="Hospitals"
+            value={s?.total_hospitals}
+            icon={Building2}
+            href="/parties"
+            insight={s?.total_parties ? `${Math.round((s.total_hospitals / s.total_parties) * 100)}% of all parties` : undefined}
+          />
+          <StatCard
+            label="Agencies"
+            value={s?.total_agencies}
+            icon={Briefcase}
+            href="/parties"
+            insight={s?.total_parties ? `${Math.round((s.total_agencies / s.total_parties) * 100)}% of all parties` : undefined}
+          />
+          <StatCard
+            label="Products"
+            value={s?.total_products}
+            icon={Package}
+            href="/products"
+            insight="items in surgical catalog"
+          />
+          <StatCard
+            label="Visits"
+            value={s?.total_visits}
+            icon={CalendarCheck}
+            href="/visits"
+            insight="field visits logged"
+          />
+          <StatCard
+            label="Confirmed Orders"
+            value={s?.total_orders}
+            icon={ShoppingCart}
+            href="/orders"
+            insight={s?.total_orders && s.total_parties ? `across ${s.total_parties} parties` : "confirmed line items"}
+          />
+          <StatCard
+            label="Confirmed Value"
+            value={money(s?.total_order_value)}
+            icon={TrendingUp}
+            href="/orders"
+            insight={s?.total_orders && s.total_orders > 0 ? `avg ${money(Math.round((s.total_order_value ?? 0) / s.total_orders))} per order` : "sell rate basis"}
+          />
         </>)}
       </div>
 
