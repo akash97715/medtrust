@@ -55,7 +55,7 @@ export default function LandingPage() {
         </h2>
 
         <p className="text-white/50 text-base md:text-lg max-w-md leading-relaxed mb-10">
-          Medical and pharmaceutical supply distribution across Bihar. Retail trade in pharmaceuticals, orthopaedic goods and healthcare consumables.
+          Medical and pharmaceutical supply distribution. Retail trade in pharmaceuticals, orthopaedic goods and healthcare consumables.
         </p>
 
         {/* CTA */}
@@ -66,7 +66,7 @@ export default function LandingPage() {
           Open Operations Dashboard
           <ArrowRight size={18} className="group-hover:translate-x-0.5 transition-transform" />
         </Link>
-        <p className="text-white/20 text-xs mt-4 font-medium">Field operations · Bihar, West Champaran</p>
+        <p className="text-white/20 text-xs mt-4 font-medium">Pharmaceutical &amp; medical supply operations</p>
 
         {/* Credential cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-16 w-full max-w-2xl">
@@ -87,9 +87,9 @@ export default function LandingPage() {
             },
             {
               icon: MapPin,
-              label: "Field Operations",
-              value: "West Champaran",
-              sub: "Bihar · North India",
+              label: "Industry",
+              value: "NIC 47721 · 47722",
+              sub: "Pharmaceuticals · Healthcare",
               color: "amber",
             },
           ].map(({ icon: Icon, label, value, sub, color }) => (

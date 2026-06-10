@@ -27,8 +27,6 @@ export default function AddPartyPage() {
   const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<any>({
     defaultValues: {
       party_type: "hospital",
-      district: "West Champaran",
-      state: "Bihar",
     },
   });
 

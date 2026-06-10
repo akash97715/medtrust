@@ -89,8 +89,8 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="px-5 py-4 border-t border-white/5">
-        <p className="text-[11px] text-white/25 font-medium">Bihar · West Champaran</p>
-        <p className="text-[10px] text-white/15 mt-0.5">Field Operations v2.0</p>
+        <p className="text-[11px] text-white/25 font-medium">MedTrust Healthcare</p>
+        <p className="text-[10px] text-white/15 mt-0.5">Operations v2.0</p>
       </div>
     </aside>
   );

@@ -1,4 +1,4 @@
-import { Building2, ShieldCheck, Award, MapPin, Package, Calendar, BadgeCheck, Layers } from "lucide-react";
+import { Building2, ShieldCheck, Award, Package, BadgeCheck, Layers } from "lucide-react";
 
 function Badge({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
   return (
@@ -50,7 +50,7 @@ export default function CompanyPage() {
           </div>
 
           <p className="text-white/60 text-sm max-w-lg leading-relaxed mb-6">
-            Retail distribution of pharmaceutical, medical and orthopaedic goods. Serving hospitals, clinics and agencies across Bihar — West Champaran field operations.
+            Retail distribution of pharmaceutical, medical and orthopaedic goods. Supplying hospitals, clinics and healthcare agencies worldwide.
           </p>
 
           <div className="flex flex-wrap gap-2">
@@ -87,32 +87,13 @@ export default function CompanyPage() {
           <InfoRow label="Social Category" value="General" />
         </Section>
 
-        {/* Registration Dates */}
-        <Section title="Registration & Validity" icon={Calendar}>
-          <InfoRow label="Date of Incorporation" value="01 June 2026" />
-          <InfoRow label="Date of Commencement" value="01 June 2026" />
-          <InfoRow label="GST Registered On" value="02 June 2026" />
-          <InfoRow label="Udyam Registered On" value="02 June 2026" />
-          <InfoRow label="GST Validity" value="Permanent (Not Applicable)" />
-          <InfoRow label="GST Status" value="Active" />
-        </Section>
-
         {/* Compliance */}
         <Section title="Compliance & Certifications" icon={ShieldCheck}>
-          <InfoRow label="GST Registration" value="29EYSPS5133L1ZF · Karnataka" />
+          <InfoRow label="GST Registration" value="29EYSPS5133L1ZF" />
           <InfoRow label="MSME / Udyam" value="UDYAM-KR-03-0706248" />
           <InfoRow label="MSME Classification Year" value="2026–27" />
           <InfoRow label="Enterprise Category" value="Micro" />
-          <InfoRow label="Jurisdiction" value="Bangalore Urban · Karnataka" />
-        </Section>
-
-        {/* Operations */}
-        <Section title="Field Operations" icon={MapPin}>
-          <InfoRow label="Primary Territory" value="Bihar — West Champaran" />
-          <InfoRow label="Registered State" value="Karnataka" />
-          <InfoRow label="District" value="Bangalore Urban" />
-          <InfoRow label="Operational Model" value="Direct Field Sales" />
-          <InfoRow label="Field App Version" value="v2.0" />
+          <InfoRow label="GST Status" value="Active" />
         </Section>
       </div>
 
@@ -170,7 +151,7 @@ export default function CompanyPage() {
               MEDTRUST HEALTH CARE is a registered proprietorship firm under the Goods &amp; Services Tax Act (GST No. 29EYSPS5133L1ZF) and recognised as a Micro Enterprise under the Ministry of Micro, Small &amp; Medium Enterprises, Government of India (Udyam No. UDYAM-KR-03-0706248). All registrations are valid and active as of the date of issue.
             </p>
             <p className="text-xs text-slate-400 mt-2">
-              &copy; {new Date().getFullYear()} MedTrust Healthcare. All rights reserved. · Field Operations — Bihar, West Champaran
+              &copy; {new Date().getFullYear()} MedTrust Healthcare. All rights reserved.
             </p>
           </div>
         </div>
