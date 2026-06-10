@@ -21,7 +21,7 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex flex-col w-60 min-h-screen fixed top-0 left-0 z-30 bg-[#0c1220]">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 h-16 border-b border-white/5 shrink-0">
+      <Link href="/" className="flex items-center gap-3 px-5 h-16 border-b border-white/5 shrink-0 hover:opacity-80 transition-opacity">
         <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-teal-500 shadow-lg shadow-teal-500/30">
           <span className="text-white font-black text-sm tracking-tight">M</span>
         </div>
@@ -29,7 +29,7 @@ export function Sidebar() {
           <p className="font-bold text-white text-[15px] tracking-tight leading-none">MedTrust</p>
           <p className="text-[11px] text-white/30 mt-0.5 font-medium tracking-wide">HEALTHCARE</p>
         </div>
-      </div>
+      </Link>
 
       {/* Nav */}
       <nav className="flex flex-col px-3 pt-5 flex-1 gap-0.5">

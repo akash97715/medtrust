@@ -42,12 +42,12 @@ export function Header() {
     <header className="sticky top-0 z-20 bg-white border-b border-slate-100 h-16 flex items-center px-4 md:px-8 shrink-0">
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {/* Mobile logo */}
-        <div className="md:hidden flex items-center gap-2.5 mr-1">
+        <Link href="/" className="md:hidden flex items-center gap-2.5 mr-1">
           <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-teal-500 shadow-sm shadow-teal-500/30">
             <span className="text-white font-black text-xs">M</span>
           </div>
           <span className="font-bold text-[15px] text-slate-900 tracking-tight">MedTrust</span>
-        </div>
+        </Link>
 
         {/* Back button — prominent on mobile */}
         {isSubPage && (
