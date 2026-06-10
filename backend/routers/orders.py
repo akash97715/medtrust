@@ -1,0 +1,205 @@
+from typing import Optional
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from database import query, execute, scalar
+import psycopg2
+import psycopg2.extras
+from database import get_conn
+
+router = APIRouter()
+
+
+class OrderCreate(BaseModel):
+    party_id: str
+    product_id: str
+    order_date: str
+    order_status: str = "confirmed"
+    reference_number: Optional[str] = None
+    notes: Optional[str] = None
+    quantity: float
+    unit_of_measure: str = "piece"
+    buy_rate: Optional[float] = None
+    sell_rate: Optional[float] = None
+
+
+class OrderUpdate(BaseModel):
+    order_date: Optional[str] = None
+    order_status: Optional[str] = None
+    reference_number: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class OrderItemUpdate(BaseModel):
+    quantity: Optional[float] = None
+    unit_of_measure: Optional[str] = None
+    buy_rate: Optional[float] = None
+    sell_rate: Optional[float] = None
+    notes: Optional[str] = None
+
+
+@router.get("")
+def list_orders():
+    rows = query(
+        """
+        SELECT so.id AS order_id, so.order_date, so.reference_number, so.order_status,
+               p.id AS party_id, p.name AS party_name,
+               pr.id AS product_id, pr.product_name,
+               soi.id AS item_id, soi.quantity, soi.unit_of_measure, soi.buy_rate, soi.sell_rate,
+               (soi.quantity * COALESCE(soi.sell_rate, 0)) AS line_value
+        FROM sales_orders so
+        JOIN parties p ON p.id = so.party_id
+        JOIN sales_order_items soi ON soi.sales_order_id = so.id
+        JOIN products pr ON pr.id = soi.product_id
+        ORDER BY so.order_date DESC, so.reference_number, p.name
+        """
+    )
+    total_value = scalar(
+        """
+        SELECT COALESCE(SUM(soi.quantity * COALESCE(soi.sell_rate, 0)), 0)
+        FROM sales_order_items soi
+        JOIN sales_orders so ON so.id = soi.sales_order_id
+        WHERE so.order_status IN ('confirmed', 'delivered')
+        """
+    )
+    return {"rows": rows, "total_confirmed_value": total_value}
+
+
+@router.get("/{order_id}")
+def get_order(order_id: str):
+    orders = query(
+        """
+        SELECT so.id, so.order_date, so.order_status, so.reference_number, so.notes,
+               p.id AS party_id, p.name AS party_name
+        FROM sales_orders so JOIN parties p ON p.id = so.party_id
+        WHERE so.id = %s
+        """,
+        (order_id,),
+    )
+    if not orders:
+        raise HTTPException(status_code=404, detail="Order not found")
+    o = orders[0]
+    items = query(
+        """
+        SELECT soi.id, pr.id AS product_id, pr.product_name, soi.quantity, soi.unit_of_measure,
+               soi.buy_rate, soi.sell_rate,
+               (soi.quantity * COALESCE(soi.sell_rate, 0)) AS line_value, soi.notes
+        FROM sales_order_items soi
+        JOIN products pr ON pr.id = soi.product_id
+        WHERE soi.sales_order_id = %s
+        ORDER BY pr.product_name
+        """,
+        (order_id,),
+    )
+    return {**o, "items": items}
+
+
+@router.post("", status_code=201)
+def create_order(body: OrderCreate):
+    if body.quantity <= 0:
+        raise HTTPException(status_code=422, detail="Quantity must be greater than zero")
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                INSERT INTO sales_orders (party_id, order_date, order_status, reference_number, notes)
+                VALUES (%s, %s, %s, %s, %s) RETURNING id, party_id
+                """,
+                (body.party_id, body.order_date, body.order_status,
+                 body.reference_number or None, body.notes or None),
+            )
+            order = dict(cur.fetchone())
+            cur.execute(
+                """
+                INSERT INTO sales_order_items (sales_order_id, product_id, quantity, unit_of_measure, buy_rate, sell_rate)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                (order["id"], body.product_id, body.quantity, body.unit_of_measure,
+                 body.buy_rate, body.sell_rate),
+            )
+            cur.execute(
+                """
+                INSERT INTO party_product_pricing (party_id, product_id, buy_rate, sell_rate, currency_code, effective_from, notes)
+                VALUES (%s, %s, %s, %s, 'INR', %s, 'Auto-saved from order entry')
+                """,
+                (body.party_id, body.product_id, body.buy_rate, body.sell_rate, body.order_date),
+            )
+    return {"id": str(order["id"]), "party_id": str(order["party_id"])}
+
+
+@router.patch("/{order_id}")
+def update_order(order_id: str, body: OrderUpdate):
+    rows = query("SELECT * FROM sales_orders WHERE id = %s", (order_id,))
+    if not rows:
+        raise HTTPException(status_code=404, detail="Order not found")
+    e = rows[0]
+    execute(
+        """
+        UPDATE sales_orders
+        SET order_date = %s, order_status = %s, reference_number = %s, notes = %s, updated_at = NOW()
+        WHERE id = %s
+        """,
+        (
+            body.order_date or str(e["order_date"]),
+            body.order_status or e["order_status"],
+            body.reference_number if body.reference_number is not None else e["reference_number"],
+            body.notes if body.notes is not None else e["notes"],
+            order_id,
+        ),
+    )
+    return {"ok": True}
+
+
+@router.delete("/{order_id}")
+def delete_order(order_id: str):
+    execute("DELETE FROM sales_orders WHERE id = %s", (order_id,))
+    return {"ok": True}
+
+
+@router.patch("/items/{item_id}")
+def update_order_item(item_id: str, body: OrderItemUpdate):
+    rows = query(
+        "SELECT soi.*, so.party_id FROM sales_order_items soi JOIN sales_orders so ON so.id = soi.sales_order_id WHERE soi.id = %s",
+        (item_id,),
+    )
+    if not rows:
+        raise HTTPException(status_code=404, detail="Order item not found")
+    e = rows[0]
+    quantity = body.quantity if body.quantity is not None else float(e["quantity"])
+    if quantity <= 0:
+        raise HTTPException(status_code=422, detail="Quantity must be greater than zero")
+    buy_rate = body.buy_rate if body.buy_rate is not None else (float(e["buy_rate"]) if e["buy_rate"] else None)
+    sell_rate = body.sell_rate if body.sell_rate is not None else (float(e["sell_rate"]) if e["sell_rate"] else None)
+
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """
+                UPDATE sales_order_items
+                SET quantity = %s, unit_of_measure = %s, buy_rate = %s, sell_rate = %s, notes = %s
+                WHERE id = %s
+                RETURNING product_id
+                """,
+                (
+                    quantity,
+                    body.unit_of_measure or e["unit_of_measure"],
+                    buy_rate,
+                    sell_rate,
+                    body.notes if body.notes is not None else e["notes"],
+                    item_id,
+                ),
+            )
+            row = dict(cur.fetchone())
+            cur.execute(
+                """
+                INSERT INTO party_product_pricing (party_id, product_id, buy_rate, sell_rate, currency_code, effective_from, notes)
+                VALUES (%s, %s, %s, %s, 'INR', CURRENT_DATE, 'Auto-updated from order edit')
+                """,
+                (e["party_id"], row["product_id"], buy_rate, sell_rate),
+            )
+    return {"ok": True}
+
+
+@router.delete("/items/{item_id}")
+def delete_order_item(item_id: str):
+    execute("DELETE FROM sales_order_items WHERE id = %s", (item_id,))
+    return {"ok": True}

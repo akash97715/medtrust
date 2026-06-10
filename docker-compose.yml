@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: medtrust-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: medtrust_healthcare
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "55432:5432"
+    volumes:
+      - medtrust_pgdata:/var/lib/postgresql/data
+
+volumes:
+  medtrust_pgdata:
