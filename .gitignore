@@ -23,7 +23,9 @@ yarn-error.log*
 next-env.d.ts
 
 # ── Python / Backend ─────────────────────────────────────────
+__pycache__
 __pycache__/
+
 *.py[cod]
 *.pyo
 *.pyd
