@@ -34,6 +34,7 @@ const actions = [
     title: "Log Visit",
     hindi: "विज़िट दर्ज करें",
     desc: "Record a field visit — who you met, what was needed.",
+    public: true,
   },
   {
     href: "/admin/order",
@@ -75,10 +76,10 @@ export default function AdminPage() {
       </div>
 
       <div className="flex flex-col gap-3">
-        {actions.map(({ href, icon: Icon, color, border, title, hindi, desc }) => (
+        {actions.map(({ href, icon: Icon, color, border, title, hindi, desc, public: isPublic }) => (
           <button
             key={href}
-            onClick={() => openDialog(href)}
+            onClick={() => isPublic ? router.push(href) : openDialog(href)}
             className={`flex items-center gap-4 p-4 bg-white rounded-xl border ${border} hover:shadow-md active:scale-[0.98] transition-all text-left w-full`}
           >
             <div className={`flex items-center justify-center w-11 h-11 rounded-xl ${color} shrink-0`}>
