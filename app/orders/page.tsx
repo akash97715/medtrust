@@ -70,7 +70,7 @@ export default function OrdersPage() {
                     <tr key={i} className="border-b last:border-0 hover:bg-slate-50">
                       <td className="py-2 pr-4 whitespace-nowrap font-medium">{fmt(r.order_date)}</td>
                       <td className="py-2 pr-4">
-                        <Link href={`/parties/${r.party_id}`} className="text-teal-600 hover:underline">{fmt(r.party_name)}</Link>
+                        {fmt(r.party_name)}
                       </td>
                       <td className="py-2 pr-4">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[String(r.order_status)] ?? ""}`}>

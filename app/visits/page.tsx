@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Search, Pencil } from "lucide-react";
+import { Search } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   completed: "bg-green-100 text-green-700",
@@ -58,7 +58,6 @@ export default function VisitsPage() {
                     <th className="pb-2 pr-4 font-medium">Status</th>
                     <th className="pb-2 pr-4 font-medium">Location</th>
                     <th className="pb-2 pr-4 font-medium">Notes</th>
-                    <th className="pb-2 font-medium"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -77,14 +76,9 @@ export default function VisitsPage() {
                       </td>
                       <td className="py-2 pr-4 text-slate-500">{fmt(r.location_snapshot)}</td>
                       <td className="py-2 pr-4 text-slate-400 max-w-xs truncate">{fmt(r.notes)}</td>
-                      <td className="py-2">
-                        <Link href={`/visits/${r.id}/edit`} className="text-slate-400 hover:text-teal-600">
-                          <Pencil size={14} />
-                        </Link>
-                      </td>
                     </tr>
                   ))}
-                  {rows.length === 0 && <tr><td colSpan={8} className="py-8 text-center text-slate-400">No visits found.</td></tr>}
+                  {rows.length === 0 && <tr><td colSpan={7} className="py-8 text-center text-slate-400">No visits found.</td></tr>}
                 </tbody>
               </table>
             </div>

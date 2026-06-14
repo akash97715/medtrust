@@ -1,7 +1,6 @@
 "use client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getParties, createVisit } from "@/lib/api";
-import { cleanPayload } from "@/lib/utils";
 import { useForm } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,12 +10,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
       <label className="text-sm font-medium text-slate-700 block">{label}</label>
       {children}
-      {hint && <p className="text-xs text-slate-400">{hint}</p>}
     </div>
   );
 }
@@ -28,18 +26,18 @@ export default function AddVisitPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<any>({
     defaultValues: {
-      visit_purpose: "regular_visit",
+      visit_purpose: "reg_existing_invoice",
       visit_status: "completed",
     },
   });
 
   const mut = useMutation({
-    mutationFn: (v: Record<string, unknown>) => createVisit(cleanPayload(v)),
-    onSuccess: (data) => {
-      toast.success("Visit saved");
-      qc.invalidateQueries({ queryKey: ["visits"] });
+    mutationFn: (v: Record<string, unknown>) => createVisit(v),
+    onSuccess: () => {
+      toast.success("Visit logged");
+      qc.removeQueries({ queryKey: ["visits"] });
       reset();
-      router.push(`/parties/${(data as { party_id: string }).party_id}`);
+      router.push("/visits");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -52,7 +50,7 @@ export default function AddVisitPage() {
       </div>
 
       <form onSubmit={handleSubmit((v) => mut.mutate(v as Record<string, unknown>))} className="space-y-4">
-        <Field label="Party *" hint="किस hospital या agency को visit किया">
+        <Field label="Party *">
           {isLoading ? <Skeleton className="h-10" /> : (
             <Select onValueChange={(v) => setValue("party_id", v)}>
               <SelectTrigger><SelectValue placeholder="Select party…" /></SelectTrigger>
@@ -73,47 +71,22 @@ export default function AddVisitPage() {
           {errors.visit_date && <p className="text-xs text-red-500 mt-0.5">Date is required</p>}
         </Field>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Purpose">
-            <Select onValueChange={(v) => setValue("visit_purpose", v)} defaultValue="regular_visit">
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="regular_visit">Regular visit</SelectItem>
-                <SelectItem value="follow_up">Follow-up</SelectItem>
-                <SelectItem value="sample_drop">Sample drop</SelectItem>
-                <SelectItem value="order_collection">Order collection</SelectItem>
-                <SelectItem value="complaint">Complaint</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field label="Status">
-            <Select onValueChange={(v) => setValue("visit_status", v)} defaultValue="completed">
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="planned">Planned</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-                <SelectItem value="no_contact">No contact</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-        </div>
+        <Field label="Purpose">
+          <Select onValueChange={(v) => setValue("visit_purpose", v)} defaultValue="reg_existing_invoice">
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="reg_existing_invoice">Reg Existing Invoice</SelectItem>
+              <SelectItem value="submit_invoice">Submit Invoice</SelectItem>
+              <SelectItem value="collecting_order_details">Collecting Order Details</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Location snapshot">
-            <Input {...register("location_snapshot")} placeholder="e.g. Bagaha Bus Stand" />
-          </Field>
-          <Field label="Distance (km)">
-            <Input type="number" step="0.01" {...register("distance_snapshot_km")} placeholder="22" />
-          </Field>
-        </div>
-
-        <Field label="Contact snapshot">
+        <Field label="Contact person">
           <Input {...register("contact_snapshot")} placeholder="Name of person met" />
         </Field>
 
-        <Field label="Notes" hint="क्या हुआ, क्या चाहिए था, follow-up">
+        <Field label="Notes">
           <Textarea {...register("notes")} rows={3} placeholder="What was discussed, what was needed…" />
         </Field>
 
