@@ -145,24 +145,58 @@ export default function InvoicePage() {
       <div className="invoice-wrapper bg-slate-100 px-4 pb-10 pt-3">
         <div className="invoice-page max-w-4xl mx-auto bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden font-sans">
 
-          {/* ── Title bar ── */}
-          <div className="bg-[#b8cce4] text-center py-2 border-b border-slate-300">
-            <h1 className="text-base font-black text-slate-800 tracking-wide">Tax Invoice</h1>
+          {/* ── Branded header ── */}
+          <div className="bg-[#0c1220] px-8 pt-6 pb-5">
+            <div className="flex items-start justify-between">
+              {/* Left: brand */}
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-teal-500 flex items-center justify-center shadow-lg shadow-teal-500/30 shrink-0">
+                    <span className="text-white font-black text-base">M</span>
+                  </div>
+                  <div>
+                    <p className="text-white font-black text-xl tracking-tight leading-none">{CO.name}</p>
+                    <p className="text-teal-400 text-[11px] font-semibold tracking-wide mt-0.5">{CO.tagline}</p>
+                  </div>
+                </div>
+                <div className="space-y-0.5 ml-1">
+                  <p className="text-white/50 text-[11px] font-mono">GSTIN: <span className="text-white/85 font-semibold">{CO.gst}</span></p>
+                  <p className="text-white/50 text-[11px] font-mono">Udyam: <span className="text-white/85 font-semibold">{CO.udyam}</span></p>
+                </div>
+              </div>
+              {/* Right: invoice label */}
+              <div className="text-right">
+                <p className="text-white/30 text-[10px] font-bold uppercase tracking-[0.2em] mb-1">Tax Invoice</p>
+                <p className="text-white font-black text-2xl tracking-tight">{invoiceNo(o?.order_id)}</p>
+                <p className="text-white/50 text-xs mt-1">Date: <span className="text-white/85">{fmtDate(o?.order_date)}</span></p>
+                {(o?.bill_period_from || o?.bill_period_to) && (
+                  <p className="text-white/40 text-[11px] mt-0.5">
+                    Period: {fmtDate(o?.bill_period_from)} – {fmtDate(o?.bill_period_to)}
+                  </p>
+                )}
+                {o?.reference_number && (
+                  <p className="text-white/35 text-[11px] mt-0.5">Ref: {String(o.reference_number)}</p>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* ── Invoice meta ── */}
-          <div className="grid grid-cols-2 border-b border-slate-300">
-            <div className="px-4 py-2 border-r border-slate-300 space-y-0.5">
-              <p className="text-xs"><span className="font-bold">Invoice No :</span> {invoiceNo(o?.order_id)}</p>
-              <p className="text-xs"><span className="font-bold">Invoice date :</span> {fmtDate(o?.order_date)}</p>
-              {(o?.bill_period_from || o?.bill_period_to) && (
-                <p className="text-xs"><span className="font-bold">Bill Period :</span> {fmtDate(o?.bill_period_from)} TO {fmtDate(o?.bill_period_to)}</p>
-              )}
-            </div>
-            <div className="px-4 py-2 space-y-0.5">
-              <p className="text-[11px] text-slate-500">GSTIN: <span className="font-bold text-slate-700">{CO.gst}</span></p>
-              <p className="text-[11px] text-slate-500">Udyam: <span className="font-bold text-slate-700">{CO.udyam}</span></p>
-            </div>
+          {/* Teal accent bar */}
+          <div className="h-[3px] bg-gradient-to-r from-teal-600 via-teal-400 to-teal-600" />
+
+          {/* ── Title bar ── */}
+          <div className="bg-[#b8cce4] text-center py-1.5 border-b border-slate-300">
+            <h1 className="text-sm font-black text-slate-800 tracking-widest uppercase">Tax Invoice</h1>
+          </div>
+
+          {/* ── Invoice meta (bill period row if needed) ── */}
+          <div className="border-b border-slate-300 px-4 py-2 grid grid-cols-3 gap-4">
+            <p className="text-xs"><span className="font-bold">Invoice No :</span> {invoiceNo(o?.order_id)}</p>
+            <p className="text-xs"><span className="font-bold">Invoice date :</span> {fmtDate(o?.order_date)}</p>
+            {(o?.bill_period_from || o?.bill_period_to)
+              ? <p className="text-xs"><span className="font-bold">Bill Period :</span> {fmtDate(o?.bill_period_from)} TO {fmtDate(o?.bill_period_to)}</p>
+              : <p className="text-xs text-slate-400">Bill Period : —</p>
+            }
           </div>
 
           {/* ── Bill to Party ── */}
