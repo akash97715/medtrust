@@ -11,6 +11,7 @@ def list_pricing():
         SELECT party_id, party_name, product_name, buy_rate, sell_rate,
                currency_code, effective_from, effective_to
         FROM dashboard_current_pricing
+        WHERE party_id IN (SELECT id FROM parties WHERE is_active = TRUE)
         ORDER BY party_name, product_name
         """
     )

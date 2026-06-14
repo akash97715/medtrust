@@ -10,7 +10,7 @@ import { Search } from "lucide-react";
 
 export default function PricingPage() {
   const [search, setSearch] = useState("");
-  const { data, isLoading } = useQuery({ queryKey: ["pricing"], queryFn: getPricing });
+  const { data, isLoading } = useQuery({ queryKey: ["pricing"], queryFn: getPricing, staleTime: 0, refetchOnMount: "always" });
 
   const rows = (data as Record<string, unknown>[] ?? []).filter(
     (r) => !search ||
