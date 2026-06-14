@@ -218,7 +218,7 @@ export function Sidebar() {
         <div className="mt-2.5">
           {!isStaff && (
             <button
-              onClick={() => setLockModal("/visits")}
+              onClick={() => setLockModal("/visitors")}
               className="flex items-center gap-1.5 text-[10px] text-white/25 hover:text-white/55 transition-colors font-medium"
             >
               <Lock size={9} /> Staff access
@@ -345,7 +345,7 @@ export function MobileNav() {
         {/* Staff/Admin unlock or More */}
         {!isStaff ? (
           <button
-            onClick={() => setLockModal("/visits")}
+            onClick={() => setLockModal("/visitors")}
             className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-semibold text-white/25 hover:text-white/55 transition-all active:scale-95 active:opacity-70"
           >
             <Lock size={18} />

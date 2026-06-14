@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight, ShieldCheck, BadgeCheck,
   Zap, Building2, Phone, Package,
@@ -6,10 +7,25 @@ import {
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#080e1a] text-white flex flex-col">
+    <div className="min-h-screen bg-[#080e1a] text-white flex flex-col relative">
+
+      {/* ── BACKGROUND IMAGE (fixed, doesn't scroll) ── */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <Image
+          src="https://images.unsplash.com/photo-1551190822-a9333d879b1f?auto=format&fit=crop&w=1920&q=80"
+          alt=""
+          fill
+          className="object-cover object-center"
+          priority
+        />
+        {/* Base dark overlay — keeps text fully readable */}
+        <div className="absolute inset-0 bg-[#080e1a]/82" />
+        {/* Radial vignette — edges slightly lighter so image breathes */}
+        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 60% 40%, transparent 0%, rgba(8,14,26,0.25) 100%)" }} />
+      </div>
 
       {/* ── NAVBAR ── */}
-      <nav className="sticky top-0 z-20 border-b border-white/[0.06] bg-[#080e1a]/95 backdrop-blur-md px-5 md:px-10 h-14 flex items-center justify-between">
+      <nav className="relative z-20 sticky top-0 border-b border-white/[0.06] bg-[#080e1a]/90 backdrop-blur-md px-5 md:px-10 h-14 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-teal-500 shadow-lg shadow-teal-500/40 shrink-0">
             <span className="text-white font-black text-sm">M</span>
@@ -28,7 +44,7 @@ export default function LandingPage() {
       </nav>
 
       {/* ── HERO ── */}
-      <section className="flex-1 flex flex-col items-center justify-center px-5 py-16 md:py-24 text-center">
+      <section className="relative z-10 flex-1 flex flex-col items-center justify-center px-5 py-16 md:py-24 text-center">
 
         {/* Badge */}
         <div className="inline-flex items-center gap-2 bg-teal-500/10 border border-teal-500/30 rounded-full px-4 py-1.5 mb-8">
@@ -77,36 +93,36 @@ export default function LandingPage() {
       </section>
 
       {/* ── DIVIDER ── */}
-      <div className="border-t border-white/[0.06]" />
+      <div className="relative z-10 border-t border-white/[0.06]" />
 
       {/* ── FEATURES ── */}
-      <section className="px-5 md:px-10 py-12 md:py-16 max-w-4xl mx-auto w-full">
+      <section className="relative z-10 px-5 md:px-10 py-12 md:py-16 max-w-4xl mx-auto w-full">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             {
               icon: BadgeCheck,
               color: "text-teal-400",
-              bg: "bg-teal-500/10 border-teal-500/20",
+              border: "border-teal-500/20",
               title: "100% Genuine",
               desc: "Sourced directly from certified manufacturers. No counterfeit, no compromise.",
             },
             {
               icon: Zap,
               color: "text-amber-400",
-              bg: "bg-amber-500/10 border-amber-500/20",
+              border: "border-amber-500/20",
               title: "Lowest Market Rates",
               desc: "No middlemen. Direct pricing means you save more on every order.",
             },
             {
               icon: ShieldCheck,
               color: "text-blue-400",
-              bg: "bg-blue-500/10 border-blue-500/20",
+              border: "border-blue-500/20",
               title: "GST-Compliant Billing",
               desc: "Fully GST-registered. Proper tax invoices on every single order.",
             },
-          ].map(({ icon: Icon, color, bg, title, desc }) => (
-            <div key={title} className={`rounded-2xl border p-5 ${bg}`}>
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-4 ${bg}`}>
+          ].map(({ icon: Icon, color, border, title, desc }) => (
+            <div key={title} className={`rounded-2xl border ${border} bg-white/[0.04] backdrop-blur-md p-5`}>
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-4 bg-white/[0.06]`}>
                 <Icon size={18} className={color} />
               </div>
               <h3 className="font-bold text-white text-sm mb-1.5">{title}</h3>
@@ -117,7 +133,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer className="border-t border-white/[0.06] px-5 md:px-10 py-6">
+      <footer className="relative z-10 border-t border-white/[0.06] px-5 md:px-10 py-6">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
             <Link href="/company" className="group flex items-center gap-2 text-white/40 hover:text-white/70 transition-colors">
