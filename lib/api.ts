@@ -6,8 +6,22 @@ async function req<T>(path: string, options?: RequestInit): Promise<T> {
     ...options,
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail ?? "Request failed");
+    const text = await res.text().catch(() => "");
+    let detail: string = res.statusText || "Request failed";
+    try {
+      const json = JSON.parse(text);
+      if (typeof json?.detail === "string") {
+        detail = json.detail;
+      } else if (Array.isArray(json?.detail)) {
+        // Pydantic v2 validation errors — pick the first message
+        detail = json.detail.map((e: { msg?: string; loc?: string[] }) =>
+          `${e.loc?.slice(1).join(".") ?? "field"}: ${e.msg ?? "invalid"}`
+        ).join("; ");
+      } else if (text) {
+        detail = text;
+      }
+    } catch { /* non-JSON body — use statusText */ }
+    throw new Error(detail);
   }
   return res.json();
 }

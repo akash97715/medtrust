@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -14,6 +15,12 @@ ALLOWED_ORIGINS = [
     "https://medtrust.space",
     "https://www.medtrust.space",
 ]
+
+# Add any extra origins from env (e.g. Vercel preview URLs)
+# Set ALLOWED_ORIGINS_EXTRA=https://yourapp.vercel.app,https://other.com in Railway
+_extra = os.getenv("ALLOWED_ORIGINS_EXTRA", "")
+if _extra:
+    ALLOWED_ORIGINS += [o.strip() for o in _extra.split(",") if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,
@@ -39,6 +46,8 @@ def run_migrations():
         "ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS bill_period_to DATE",
         "ALTER TABLE sales_order_items ADD COLUMN IF NOT EXISTS hsn_code VARCHAR(20)",
         "ALTER TABLE sales_order_items ADD COLUMN IF NOT EXISTS discount NUMERIC(12,2) DEFAULT 0",
+        "ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS cgst_rate NUMERIC(5,2) DEFAULT 6",
+        "ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS sgst_rate NUMERIC(5,2) DEFAULT 6",
     ]
     for sql in migrations:
         execute(sql)

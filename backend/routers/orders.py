@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from database import query, execute, scalar
 import psycopg2
 import psycopg2.extras
+import psycopg2.errors
 from database import get_conn
 
 router = APIRouter()
@@ -25,6 +26,8 @@ class OrderCreate(BaseModel):
     bill_period_to: Optional[str] = None
     hsn_code: Optional[str] = None
     discount: Optional[float] = 0
+    cgst_rate: Optional[float] = 6
+    sgst_rate: Optional[float] = 6
 
 
 class OrderUpdate(BaseModel):
@@ -34,6 +37,8 @@ class OrderUpdate(BaseModel):
     notes: Optional[str] = None
     bill_period_from: Optional[str] = None
     bill_period_to: Optional[str] = None
+    cgst_rate: Optional[float] = None
+    sgst_rate: Optional[float] = None
 
 
 class OrderItemUpdate(BaseModel):
@@ -79,6 +84,8 @@ def get_order(order_id: str):
         """
         SELECT so.id, so.order_date, so.order_status, so.reference_number, so.notes,
                so.bill_period_from, so.bill_period_to,
+               COALESCE(so.cgst_rate, 6) AS cgst_rate,
+               COALESCE(so.sgst_rate, 6) AS sgst_rate,
                p.id AS party_id, p.name AS party_name
         FROM sales_orders so JOIN parties p ON p.id = so.party_id
         WHERE so.id = %s
@@ -108,33 +115,43 @@ def get_order(order_id: str):
 def create_order(body: OrderCreate):
     if body.quantity <= 0:
         raise HTTPException(status_code=422, detail="Quantity must be greater than zero")
-    with get_conn() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute(
-                """
-                INSERT INTO sales_orders (party_id, order_date, order_status, reference_number, notes, bill_period_from, bill_period_to)
-                VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id, party_id
-                """,
-                (body.party_id, body.order_date, body.order_status,
-                 body.reference_number or None, body.notes or None,
-                 body.bill_period_from or None, body.bill_period_to or None),
-            )
-            order = dict(cur.fetchone())
-            cur.execute(
-                """
-                INSERT INTO sales_order_items (sales_order_id, product_id, quantity, unit_of_measure, buy_rate, sell_rate, hsn_code, discount)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-                (order["id"], body.product_id, body.quantity, body.unit_of_measure,
-                 body.buy_rate, body.sell_rate, body.hsn_code or None, body.discount or 0),
-            )
-            cur.execute(
-                """
-                INSERT INTO party_product_pricing (party_id, product_id, buy_rate, sell_rate, currency_code, effective_from, notes)
-                VALUES (%s, %s, %s, %s, 'INR', %s, 'Auto-saved from order entry')
-                """,
-                (body.party_id, body.product_id, body.buy_rate, body.sell_rate, body.order_date),
-            )
+    try:
+        with get_conn() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute(
+                    """
+                    INSERT INTO sales_orders (party_id, order_date, order_status, reference_number, notes, bill_period_from, bill_period_to, cgst_rate, sgst_rate)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id, party_id
+                    """,
+                    (body.party_id, body.order_date, body.order_status,
+                     body.reference_number or None, body.notes or None,
+                     body.bill_period_from or None, body.bill_period_to or None,
+                     body.cgst_rate if body.cgst_rate is not None else 6,
+                     body.sgst_rate if body.sgst_rate is not None else 6),
+                )
+                order = dict(cur.fetchone())
+                cur.execute(
+                    """
+                    INSERT INTO sales_order_items (sales_order_id, product_id, quantity, unit_of_measure, buy_rate, sell_rate, hsn_code, discount)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (order["id"], body.product_id, body.quantity, body.unit_of_measure,
+                     body.buy_rate, body.sell_rate, body.hsn_code or None, body.discount or 0),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO party_product_pricing (party_id, product_id, buy_rate, sell_rate, currency_code, effective_from, notes)
+                    VALUES (%s, %s, %s, %s, 'INR', %s, 'Auto-saved from order entry')
+                    """,
+                    (body.party_id, body.product_id, body.buy_rate, body.sell_rate, body.order_date),
+                )
+    except psycopg2.errors.UniqueViolation:
+        raise HTTPException(
+            status_code=409,
+            detail="An order for this party on this date already exists. Add a Reference Number to distinguish multiple orders on the same date.",
+        )
+    except psycopg2.Error as e:
+        raise HTTPException(status_code=422, detail=str(e).splitlines()[0])
     return {"id": str(order["id"]), "party_id": str(order["party_id"])}
 
 
@@ -148,7 +165,8 @@ def update_order(order_id: str, body: OrderUpdate):
         """
         UPDATE sales_orders
         SET order_date = %s, order_status = %s, reference_number = %s, notes = %s,
-            bill_period_from = %s, bill_period_to = %s, updated_at = NOW()
+            bill_period_from = %s, bill_period_to = %s,
+            cgst_rate = %s, sgst_rate = %s, updated_at = NOW()
         WHERE id = %s
         """,
         (
@@ -158,6 +176,8 @@ def update_order(order_id: str, body: OrderUpdate):
             body.notes if body.notes is not None else e["notes"],
             body.bill_period_from if body.bill_period_from is not None else e.get("bill_period_from"),
             body.bill_period_to if body.bill_period_to is not None else e.get("bill_period_to"),
+            body.cgst_rate if body.cgst_rate is not None else float(e.get("cgst_rate") or 6),
+            body.sgst_rate if body.sgst_rate is not None else float(e.get("sgst_rate") or 6),
             order_id,
         ),
     )

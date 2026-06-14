@@ -59,7 +59,7 @@ export default function AddOrderPage() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<any>({
-    defaultValues: { order_status: "confirmed", unit_of_measure: "piece", discount: 0 },
+    defaultValues: { order_status: "confirmed", unit_of_measure: "piece", discount: 0, cgst_rate: 6, sgst_rate: 6 },
   });
 
   const mut = useMutation({
@@ -168,8 +168,9 @@ export default function AddOrderPage() {
           <Field label="Buy rate" en="Your cost price — what you paid to the supplier." hi="आपकी लागत कीमत — आपने सप्लायर को कितना दिया।">
             <Input type="number" step="0.01" {...register("buy_rate")} placeholder="0.00" />
           </Field>
-          <Field label="Sell rate" en="Price charged to the party. This appears on the invoice." hi="पार्टी को जो कीमत चार्ज की गई। यही इनवॉइस पर दिखेगी।">
-            <Input type="number" step="0.01" {...register("sell_rate")} placeholder="0.00" />
+          <Field label="Sell rate *" en="Price charged to the party. This appears on the invoice." hi="पार्टी को जो कीमत चार्ज की गई। यही इनवॉइस पर दिखेगी।">
+            <Input type="number" step="0.01" {...register("sell_rate", { required: true })} placeholder="0.00" />
+            {errors.sell_rate && <p className="text-xs text-red-500 mt-0.5">Sell rate is required</p>}
           </Field>
         </div>
 
@@ -183,6 +184,15 @@ export default function AddOrderPage() {
         <Field label="HSN Code" en="Harmonised System of Nomenclature code for the product — required for GST invoices. E.g. 3004 for medicines, 9018 for surgical instruments." hi="प्रोडक्ट का HSN कोड — GST इनवॉइस के लिए जरूरी है। जैसे दवाओं के लिए 3004, सर्जिकल उपकरणों के लिए 9018।">
           <Input {...register("hsn_code")} placeholder="e.g. 3004" />
         </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="CGST %" en="Central GST rate as a percentage. Common rates: 0%, 2.5%, 6%, 9%. For medicines it is usually 6% (total GST 12%)." hi="केंद्रीय GST की दर प्रतिशत में। सामान्य दरें: 0%, 2.5%, 6%, 9%। दवाओं पर आमतौर पर 6% (कुल GST 12%) होता है।">
+            <Input type="number" step="0.01" min="0" max="28" {...register("cgst_rate")} placeholder="6" />
+          </Field>
+          <Field label="SGST %" en="State GST rate as a percentage. Must equal CGST rate for intra-state sales. For inter-state sales use IGST instead." hi="राज्य GST की दर प्रतिशत में। राज्य के अंदर की बिक्री के लिए CGST के बराबर होती है। राज्य के बाहर की बिक्री के लिए IGST लगती है।">
+            <Input type="number" step="0.01" min="0" max="28" {...register("sgst_rate")} placeholder="6" />
+          </Field>
+        </div>
 
         <Field label="Reference number" en="Optional PO number, challan number or any internal reference." hi="वैकल्पिक PO नंबर, चालान नंबर या कोई आंतरिक संदर्भ।">
           <Input {...register("reference_number")} placeholder="Optional PO or ref" />

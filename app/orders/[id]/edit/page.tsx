@@ -17,7 +17,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ArrowLeft, Trash2, Pencil } from "lucide-react";
-import { money, fmt } from "@/lib/utils";
+import { money, fmt, cleanPayload } from "@/lib/utils";
 
 function EditItemRow({ item, onSaved, onDeleted }: { item: Record<string, unknown>; onSaved: () => void; onDeleted: () => void }) {
   const [editing, setEditing] = useState(false);
@@ -49,7 +49,7 @@ function EditItemRow({ item, onSaved, onDeleted }: { item: Record<string, unknow
         <td className="py-2 pr-4 text-right text-slate-400">—</td>
         <td className="py-2">
           <div className="flex gap-1">
-            <Button size="sm" className="h-7 text-xs" onClick={handleSubmit((v) => updateMut.mutate(v))} disabled={updateMut.isPending}>Save</Button>
+            <Button size="sm" className="h-7 text-xs" onClick={handleSubmit((v) => updateMut.mutate(cleanPayload(v as Record<string, unknown>)))} disabled={updateMut.isPending}>Save</Button>
             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { setEditing(false); reset(); }}>Cancel</Button>
           </div>
         </td>
@@ -104,7 +104,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
 
   const updateMut = useMutation({
     mutationFn: (v: unknown) => updateOrder(id, v),
-    onSuccess: () => { toast.success("Order updated"); qc.invalidateQueries({ queryKey: ["order", id] }); },
+    onSuccess: () => { toast.success("Order updated"); qc.removeQueries({ queryKey: ["order", id] }); qc.invalidateQueries({ queryKey: ["orders"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
 

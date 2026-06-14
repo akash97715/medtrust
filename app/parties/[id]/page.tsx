@@ -48,7 +48,7 @@ export default function PartyDetailPage({ params }: { params: Promise<{ id: stri
   const { id } = use(params);
   const router = useRouter();
   const qc = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["party", id], queryFn: () => getParty(id) });
+  const { data, isLoading } = useQuery({ queryKey: ["party", id], queryFn: () => getParty(id), staleTime: 0, refetchOnMount: "always" });
   const deactivate = useMutation({
     mutationFn: () => deleteParty(id),
     onSuccess: () => {

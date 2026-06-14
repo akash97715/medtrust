@@ -4,7 +4,7 @@ import { getOrder, getParty } from "@/lib/api";
 import { useParams } from "next/navigation";
 import { Printer, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
+// import Image from "next/image"; // re-enable with QR scanner
 
 // ── Company constants ──────────────────────────────────────────
 const CO = {
@@ -12,14 +12,11 @@ const CO = {
   tagline: "Medical & Surgical Supply Distributors",
   gst:     "29EYSPS5133L1ZF",
   udyam:   "UDYAM-KR-03-0706248",
-  bank:    "BANK OF MAHARASHTRA",
-  account: "60528282863",
-  ifsc:    "MAHB0002126",
-  upi:     "medtrusthealthcare12@okicici",  // ← update with real UPI ID
+  bank:    "KOTAK MAHINDRA BANK",
+  account: "2053455059",
+  ifsc:    "KKBK0008042",
 };
 
-// GST rate — change to 0.05 or 0.12 if applicable for your products
-const GST_RATE = 0.12; // 12% → CGST 6% + SGST 6%
 
 // ── Helpers ────────────────────────────────────────────────────
 function fmt(v: unknown) { return v == null || v === "" ? "—" : String(v); }
@@ -60,11 +57,6 @@ function amountInWords(amount: number): string {
   return s.trim() + " RUPEES ONLY";
 }
 
-function upiQr(upiId: string, amount: number) {
-  const data = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(CO.name)}&am=${amount.toFixed(2)}&cu=INR`;
-  return `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(data)}&size=100x100&margin=4&color=0c1220`;
-}
-
 // ── Cell helper ────────────────────────────────────────────────
 function Td({ children, right, bold, small, gray }: {
   children: React.ReactNode; right?: boolean; bold?: boolean; small?: boolean; gray?: boolean;
@@ -97,12 +89,17 @@ export default function InvoicePage() {
   });
   const party = partyData as Record<string, unknown> | undefined;
 
+  // Warn if any item is missing sell_rate
+  const missingSellRate = items.some((it) => it.sell_rate == null);
+
   // Calculations — discount now comes from each order item
+  const cgstRate    = Number(o?.cgst_rate ?? 6);
+  const sgstRate    = Number(o?.sgst_rate ?? 6);
   const subtotal    = items.reduce((s, it) => s + n(it.quantity) * n(it.sell_rate), 0);
   const discount    = items.reduce((s, it) => s + n(it.discount), 0);
   const taxable     = subtotal - discount;
-  const cgst        = taxable * (GST_RATE / 2);
-  const sgst        = taxable * (GST_RATE / 2);
+  const cgst        = taxable * (cgstRate / 100);
+  const sgst        = taxable * (sgstRate / 100);
   const grandTotal  = taxable + cgst + sgst;
 
   if (isLoading) return (
@@ -139,6 +136,12 @@ export default function InvoicePage() {
             <Printer size={15} /> Print / Save PDF
           </button>
         </div>
+        {missingSellRate && (
+          <div className="max-w-4xl mx-auto mt-3 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 flex items-center gap-2">
+            <span className="text-red-600 text-sm font-semibold">Sell rate missing on one or more items — amounts will show ₹0.00.</span>
+            <Link href={`/orders/${o?.id}/edit`} className="ml-auto text-xs font-bold text-red-700 underline underline-offset-2">Edit Order →</Link>
+          </div>
+        )}
       </div>
 
       {/* Invoice document */}
@@ -167,15 +170,15 @@ export default function InvoicePage() {
               {/* Right: invoice label */}
               <div className="text-right">
                 <p className="text-white/30 text-[10px] font-bold uppercase tracking-[0.2em] mb-1">Tax Invoice</p>
-                <p className="text-white font-black text-2xl tracking-tight">{invoiceNo(o?.order_id)}</p>
+                <p className="no-print text-white font-black text-2xl tracking-tight">{invoiceNo(o?.order_id)}</p>
                 <p className="text-white/50 text-xs mt-1">Date: <span className="text-white/85">{fmtDate(o?.order_date)}</span></p>
                 {(o?.bill_period_from || o?.bill_period_to) && (
-                  <p className="text-white/40 text-[11px] mt-0.5">
+                  <p className="no-print text-white/40 text-[11px] mt-0.5">
                     Period: {fmtDate(o?.bill_period_from)} – {fmtDate(o?.bill_period_to)}
                   </p>
                 )}
                 {o?.reference_number && (
-                  <p className="text-white/35 text-[11px] mt-0.5">Ref: {String(o.reference_number)}</p>
+                  <p className="no-print text-white/35 text-[11px] mt-0.5">Ref: {String(o.reference_number)}</p>
                 )}
               </div>
             </div>
@@ -281,10 +284,10 @@ export default function InvoicePage() {
                 <tbody>
                   {[
                     { label: "Total Amount before Tax", value: money(taxable) },
-                    { label: `CGST @ ${(GST_RATE / 2 * 100).toFixed(0)}%`, value: money(cgst) },
-                    { label: `SGST @ ${(GST_RATE / 2 * 100).toFixed(0)}%`, value: money(sgst) },
-                    { label: "IGST @ 18%", value: "-" },
-                    { label: "Grand total", value: money(grandTotal), bold: true },
+                    { label: `CGST (${cgstRate}%)`, value: money(cgst) },
+                    { label: `SGST (${sgstRate}%)`, value: money(sgst) },
+                    { label: "IGST", value: "-" },
+                    { label: "Grand Total", value: money(grandTotal), bold: true },
                     { label: "GST on Reverse Charge", value: "-" },
                   ].map(({ label, value, bold }) => (
                     <tr key={label}>
@@ -311,18 +314,12 @@ export default function InvoicePage() {
                   <p className="text-xs"><span className="font-bold">Bank IFSC :</span> {CO.ifsc}</p>
                   <p className="text-xs"><span className="font-bold">GSTIN :</span> {CO.gst}</p>
                 </div>
+                {/* QR scanner — re-enable when kotak-qr.png is placed in /public/
                 <div className="flex flex-col items-center justify-center gap-1">
-                  <Image
-                    src={upiQr(CO.upi, grandTotal)}
-                    alt="UPI QR"
-                    width={90}
-                    height={90}
-                    className="rounded border border-slate-200"
-                    unoptimized
-                  />
-                  <p className="text-[10px] font-bold text-slate-500">UPI: {CO.upi}</p>
-                  <p className="text-[10px] text-teal-600 font-black">Scan to Pay {money(grandTotal)}</p>
+                  <Image src="/kotak-qr.png" alt="Scan to Pay" width={100} height={100} className="rounded border border-slate-200" unoptimized />
+                  <p className="text-[10px] text-teal-600 font-black">Scan to Pay</p>
                 </div>
+                */}
               </div>
             </div>
 

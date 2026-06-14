@@ -2,6 +2,7 @@
 import { use, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getParty, updateParty } from "@/lib/api";
+import { cleanPayload } from "@/lib/utils";
 import { useForm } from "react-hook-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,7 @@ export default function EditPartyPage({ params }: { params: Promise<{ id: string
   const { id } = use(params);
   const router = useRouter();
   const qc = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["party", id], queryFn: () => getParty(id) });
+  const { data, isLoading } = useQuery({ queryKey: ["party", id], queryFn: () => getParty(id), staleTime: 0, refetchOnMount: "always" });
   const { register, handleSubmit, setValue, reset } = useForm();
 
   useEffect(() => {
@@ -38,8 +39,7 @@ export default function EditPartyPage({ params }: { params: Promise<{ id: string
     mutationFn: (values: unknown) => updateParty(id, values),
     onSuccess: () => {
       toast.success("Party updated");
-      qc.invalidateQueries({ queryKey: ["party", id] });
-      qc.invalidateQueries({ queryKey: ["parties"] });
+      qc.clear(); // wipe entire cache so detail page always fetches fresh
       router.push(`/parties/${id}`);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -57,7 +57,7 @@ export default function EditPartyPage({ params }: { params: Promise<{ id: string
       </div>
       <Card>
         <CardContent className="pt-6">
-          <form onSubmit={handleSubmit((v) => mutation.mutate(v))} className="space-y-4">
+          <form onSubmit={handleSubmit((v) => mutation.mutate(cleanPayload(v as Record<string, unknown>)))} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-slate-700 block mb-1">Party type</label>

@@ -8,18 +8,25 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DB_CONFIG = {
-    "host": os.getenv("PGHOST", "127.0.0.1"),
-    "port": int(os.getenv("PGPORT", "55432")),
-    "dbname": os.getenv("PGDATABASE", "medtrust_healthcare"),
-    "user": os.getenv("PGUSER", "postgres"),
-    "password": os.getenv("PGPASSWORD", "postgres"),
-}
+# Railway provides DATABASE_URL; fall back to individual PG* vars for local dev
+_DATABASE_URL = os.getenv("DATABASE_URL")
+
+if _DATABASE_URL:
+    # psycopg2 accepts the full connection string directly
+    DB_CONFIG = _DATABASE_URL  # type: ignore[assignment]
+else:
+    DB_CONFIG = {
+        "host": os.getenv("PGHOST", "127.0.0.1"),
+        "port": int(os.getenv("PGPORT", "55432")),
+        "dbname": os.getenv("PGDATABASE", "medtrust_healthcare"),
+        "user": os.getenv("PGUSER", "postgres"),
+        "password": os.getenv("PGPASSWORD", "postgres"),
+    }
 
 
 @contextmanager
 def get_conn():
-    conn = psycopg2.connect(**DB_CONFIG)
+    conn = psycopg2.connect(DB_CONFIG) if isinstance(DB_CONFIG, str) else psycopg2.connect(**DB_CONFIG)
     try:
         yield conn
         conn.commit()
