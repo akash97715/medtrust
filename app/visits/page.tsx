@@ -66,7 +66,7 @@ export default function VisitsPage() {
                     <tr key={i} className="border-b last:border-0 hover:bg-slate-50">
                       <td className="py-2 pr-4 font-medium whitespace-nowrap">{fmt(r.visit_date)}</td>
                       <td className="py-2 pr-4">
-                        <Link href={`/parties/${r.party_id}`} className="text-teal-600 hover:underline">{fmt(r.party_name)}</Link>
+                        {fmt(r.party_name)}
                       </td>
                       <td className="py-2 pr-4 text-slate-500 capitalize">{fmt(r.party_type)}</td>
                       <td className="py-2 pr-4 text-slate-500">{fmt(r.visit_purpose)?.replace(/_/g, " ")}</td>
