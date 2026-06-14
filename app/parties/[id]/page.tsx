@@ -81,7 +81,7 @@ export default function PartyDetailPage({ params }: { params: Promise<{ id: stri
   const { id } = use(params);
   const router = useRouter();
   const qc = useQueryClient();
-  const { isUnlocked, tryUnlock } = useAuth();
+  const { isAdmin, tryUnlock } = useAuth();
   const [pendingAction, setPendingAction] = useState<"edit" | "deactivate" | null>(null);
   const [codeError, setCodeError] = useState(false);
   const [codeLoading, setCodeLoading] = useState(false);
@@ -164,13 +164,13 @@ export default function PartyDetailPage({ params }: { params: Promise<{ id: stri
         <TabsList>
           <TabsTrigger value="visits">Visits</TabsTrigger>
           <TabsTrigger value="requested" className="flex items-center gap-1.5">
-            Requested Items {!isUnlocked && <Lock size={10} className="text-slate-400" />}
+            Requested Items {!isAdmin && <Lock size={10} className="text-slate-400" />}
           </TabsTrigger>
           <TabsTrigger value="orders" className="flex items-center gap-1.5">
-            Orders {!isUnlocked && <Lock size={10} className="text-slate-400" />}
+            Orders {!isAdmin && <Lock size={10} className="text-slate-400" />}
           </TabsTrigger>
           <TabsTrigger value="pricing" className="flex items-center gap-1.5">
-            Pricing {!isUnlocked && <Lock size={10} className="text-slate-400" />}
+            Pricing {!isAdmin && <Lock size={10} className="text-slate-400" />}
           </TabsTrigger>
         </TabsList>
         <TabsContent value="visits" className="mt-4">
@@ -186,7 +186,7 @@ export default function PartyDetailPage({ params }: { params: Promise<{ id: stri
           </CardContent></Card>
         </TabsContent>
         <TabsContent value="requested" className="mt-4">
-          {isUnlocked ? (
+          {isAdmin ? (
             <Card><CardContent className="pt-4">
               <DataTable
                 rows={(p?.requested_items as Record<string, unknown>[] ?? [])}
@@ -203,7 +203,7 @@ export default function PartyDetailPage({ params }: { params: Promise<{ id: stri
           ) : <InlineUnlock label="Requested Items" />}
         </TabsContent>
         <TabsContent value="orders" className="mt-4">
-          {isUnlocked ? (
+          {isAdmin ? (
             <Card><CardContent className="pt-4">
               <DataTable
                 rows={(p?.orders as Record<string, unknown>[] ?? [])}
@@ -220,7 +220,7 @@ export default function PartyDetailPage({ params }: { params: Promise<{ id: stri
           ) : <InlineUnlock label="Orders" />}
         </TabsContent>
         <TabsContent value="pricing" className="mt-4">
-          {isUnlocked ? (
+          {isAdmin ? (
             <Card><CardContent className="pt-4">
               <DataTable
                 rows={(p?.pricing as Record<string, unknown>[] ?? [])}

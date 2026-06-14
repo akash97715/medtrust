@@ -55,7 +55,9 @@ def run_migrations():
             CONSTRAINT access_codes_digits CHECK (code ~ '^[0-9]{5}$')
         )
         """,
-        "INSERT INTO access_codes (code) VALUES ('97715') ON CONFLICT (code) DO NOTHING",
+        "ALTER TABLE access_codes ADD COLUMN IF NOT EXISTS role VARCHAR(10) DEFAULT 'admin'",
+        "UPDATE access_codes SET role = 'admin' WHERE role IS NULL OR role = 'owner'",
+        "INSERT INTO access_codes (code, role) VALUES ('97715', 'admin') ON CONFLICT (code) DO UPDATE SET role = 'admin'",
         """
         CREATE TABLE IF NOT EXISTS catalog_products (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

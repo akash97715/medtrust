@@ -2,15 +2,13 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   ArrowRight, ShieldCheck, BadgeCheck, Star,
-  Package, HeartPulse, Scissors, LayoutDashboard, Building2, Zap,
+  HeartPulse, Building2, Zap, Store,
 } from "lucide-react";
 
 const IMGS = {
   hero:     "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1200&q=80",
   products: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=800&q=80",
-  surgical: "https://images.unsplash.com/photo-1551601651-2a8555f1a136?auto=format&fit=crop&w=800&q=80",
   hospital: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=800&q=80",
-  doctor:   "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=800&q=80",
 };
 
 // Reusable text-shadow style for on-image text
@@ -35,8 +33,8 @@ export default function LandingPage() {
           <Link href="/company" className="text-xs font-semibold text-white/60 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/8 transition-colors">
             About
           </Link>
-          <Link href="/dashboard" className="flex items-center gap-1.5 bg-teal-500 hover:bg-teal-400 text-white text-xs font-black px-4 py-2 rounded-lg transition-colors shadow-lg shadow-teal-500/25 tracking-wide">
-            Dashboard <ArrowRight size={13} />
+          <Link href="/catalog" className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-white text-xs font-black px-4 py-2 rounded-lg transition-colors shadow-lg shadow-amber-500/30 tracking-wide">
+            View Catalog <ArrowRight size={13} />
           </Link>
         </div>
       </nav>
@@ -81,10 +79,11 @@ export default function LandingPage() {
 
             {/* CTA */}
             <Link
-              href="/dashboard"
-              className="group inline-flex items-center gap-2.5 bg-teal-500 hover:bg-teal-400 text-white font-black text-sm px-6 py-3 rounded-xl shadow-2xl shadow-teal-500/40 transition-all duration-150 hover:-translate-y-0.5 mb-6 tracking-wide"
+              href="/catalog"
+              className="group inline-flex items-center gap-2.5 bg-amber-500 hover:bg-amber-400 text-white font-black text-sm px-6 py-3 rounded-xl shadow-2xl shadow-amber-500/40 transition-all duration-150 hover:-translate-y-0.5 mb-6 tracking-wide"
             >
-              Open Operations Dashboard
+              <Store size={15} />
+              Browse Product Catalog
               <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
             </Link>
 
@@ -106,46 +105,47 @@ export default function LandingPage() {
 
         {/* RIGHT CARDS */}
         <div className="flex-1 overflow-y-auto p-4 md:p-5 min-h-0">
-          <div className="grid grid-cols-2 gap-3 h-full" style={{ gridTemplateRows: "1fr 1fr auto" }}>
+          <div className="flex flex-col gap-3 h-full">
 
-            {/* Card 1 — Products */}
-            <Link href="/products" className="group relative rounded-2xl overflow-hidden border-2 border-white/20 hover:border-teal-400/70 transition-all duration-200 min-h-[140px]">
-              <Image src={IMGS.products} alt="Medical products" fill className="object-cover object-center group-hover:scale-105 transition-transform duration-500" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/10" />
-              <div className="absolute inset-0 p-4 flex flex-col justify-between">
-                <div className="bg-teal-400/25 backdrop-blur-md border border-teal-400/40 p-2 rounded-xl w-fit">
-                  <Package size={15} className="text-teal-200" />
+            {/* Hero catalog card */}
+            <Link
+              href="/catalog"
+              className="group relative rounded-2xl overflow-hidden border-2 border-amber-400/60 hover:border-amber-400 transition-all duration-200 flex-1 min-h-[180px] shadow-lg shadow-amber-500/10"
+            >
+              <Image src={IMGS.products} alt="Product catalog" fill className="object-cover object-center group-hover:scale-105 transition-transform duration-500" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-black/20" />
+
+              {/* Pulsing badge */}
+              <div className="absolute top-4 right-4">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-400" />
+                </span>
+              </div>
+
+              <div className="absolute inset-0 p-5 flex flex-col justify-between">
+                <div className="bg-amber-400/25 backdrop-blur-md border border-amber-400/50 p-2.5 rounded-xl w-fit">
+                  <Store size={17} className="text-amber-200" />
                 </div>
                 <div>
-                  <h3 className="font-black text-white text-base leading-tight tracking-tight" style={shadow}>Our Products</h3>
-                  <p className="text-white/80 text-xs font-semibold mt-1" style={shadow}>Medicines, surgical tools, orthopaedic &amp; more</p>
-                  <div className="flex items-center gap-1 text-teal-300 text-[11px] font-black mt-2.5 group-hover:gap-2 transition-all tracking-wide">
-                    View catalog <ArrowRight size={11} />
+                  <p className="text-amber-300 text-[10px] font-black uppercase tracking-[0.15em] mb-1" style={shadow}>
+                    Surgical &amp; Medical Supplies
+                  </p>
+                  <h3 className="font-black text-white text-xl leading-tight tracking-tight mb-1.5" style={shadow}>
+                    Product Catalog
+                  </h3>
+                  <p className="text-white/75 text-xs font-semibold mb-4" style={shadow}>
+                    Sutures, gloves, syringes &amp; more — all deliveries within 2 days
+                  </p>
+                  <div className="inline-flex items-center gap-2 bg-amber-500 group-hover:bg-amber-400 text-white text-xs font-black px-4 py-2 rounded-xl transition-colors tracking-wide shadow-lg shadow-amber-500/30">
+                    Browse All Products <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
               </div>
             </Link>
 
-            {/* Card 2 — Surgical */}
-            <Link href="/products" className="group relative rounded-2xl overflow-hidden border-2 border-white/20 hover:border-indigo-400/70 transition-all duration-200 min-h-[140px]">
-              <Image src={IMGS.surgical} alt="Surgical instruments" fill className="object-cover object-center group-hover:scale-105 transition-transform duration-500" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/10" />
-              <div className="absolute inset-0 p-4 flex flex-col justify-between">
-                <div className="bg-indigo-400/25 backdrop-blur-md border border-indigo-400/40 p-2 rounded-xl w-fit">
-                  <Scissors size={15} className="text-indigo-200" />
-                </div>
-                <div>
-                  <h3 className="font-black text-white text-base tracking-tight" style={shadow}>Surgical Supplies</h3>
-                  <p className="text-white/80 text-xs font-semibold mt-1" style={shadow}>ऑपरेशन का सामान · Instruments &amp; wound care</p>
-                  <div className="flex items-center gap-1 text-indigo-300 text-[11px] font-black mt-2.5 group-hover:gap-2 transition-all tracking-wide">
-                    Explore <ArrowRight size={11} />
-                  </div>
-                </div>
-              </div>
-            </Link>
-
-            {/* Card 3 — Why Choose Us */}
-            <div className="group relative rounded-2xl overflow-hidden border-2 border-white/20 min-h-[140px]">
+            {/* Why Choose Us */}
+            <div className="relative rounded-2xl overflow-hidden border-2 border-white/15 min-h-[130px]">
               <Image src={IMGS.hospital} alt="Hospital" fill className="object-cover object-center" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/92 via-black/65 to-black/20" />
               <div className="absolute inset-0 p-4 flex flex-col justify-between">
@@ -153,16 +153,17 @@ export default function LandingPage() {
                   <Star size={15} className="text-amber-200" />
                 </div>
                 <div>
-                  <h3 className="font-black text-white text-base tracking-tight mb-2.5" style={shadow}>Why Choose Us</h3>
-                  <div className="space-y-1.5">
+                  <h3 className="font-black text-white text-sm tracking-tight mb-2" style={shadow}>Why Choose Us</h3>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1.5">
                     {[
-                      { icon: Zap,        text: "Lowest price in market" },
-                      { icon: BadgeCheck, text: "No fakes — certified only" },
+                      { icon: Zap,        text: "Lowest market rates" },
+                      { icon: BadgeCheck, text: "Certified products only" },
                       { icon: HeartPulse, text: "Trusted by 20+ hospitals" },
+                      { icon: ShieldCheck, text: "GST-compliant billing" },
                     ].map(({ icon: Icon, text }) => (
-                      <div key={text} className="flex items-center gap-2">
-                        <Icon size={11} className="text-amber-300 shrink-0" />
-                        <p className="text-white/85 text-xs font-semibold" style={shadow}>{text}</p>
+                      <div key={text} className="flex items-center gap-1.5">
+                        <Icon size={10} className="text-amber-300 shrink-0" />
+                        <p className="text-white/85 text-[11px] font-semibold" style={shadow}>{text}</p>
                       </div>
                     ))}
                   </div>
@@ -170,36 +171,18 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Card 4 — Dashboard */}
-            <Link href="/dashboard" className="group relative rounded-2xl overflow-hidden border-2 border-white/20 hover:border-teal-400/70 transition-all duration-200 min-h-[140px]">
-              <Image src={IMGS.doctor} alt="Healthcare professional" fill className="object-cover object-center group-hover:scale-105 transition-transform duration-500" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-black/15" />
-              <div className="absolute inset-0 p-4 flex flex-col justify-between">
-                <div className="bg-teal-400/25 backdrop-blur-md border border-teal-400/40 p-2 rounded-xl w-fit">
-                  <LayoutDashboard size={15} className="text-teal-200" />
-                </div>
-                <div>
-                  <h3 className="font-black text-white text-base tracking-tight" style={shadow}>Operations Dashboard</h3>
-                  <p className="text-white/80 text-xs font-semibold mt-1" style={shadow}>Parties, orders, visits &amp; pricing</p>
-                  <div className="flex items-center gap-1 text-teal-300 text-[11px] font-black mt-2.5 group-hover:gap-2 transition-all tracking-wide">
-                    Enter app <ArrowRight size={11} />
-                  </div>
-                </div>
-              </div>
-            </Link>
-
-            {/* Card 5 — Company (full width) */}
-            <Link href="/company" className="group col-span-2 relative rounded-2xl overflow-hidden border-2 border-white/20 hover:border-white/40 transition-all duration-200 h-12">
+            {/* Company strip */}
+            <Link href="/company" className="group relative rounded-2xl overflow-hidden border-2 border-white/15 hover:border-white/35 transition-all duration-200 h-11 shrink-0">
               <div className="absolute inset-0 bg-white/5 group-hover:bg-white/8 transition-colors" />
-              <div className="relative h-full flex items-center justify-between px-5">
+              <div className="relative h-full flex items-center justify-between px-4">
                 <div className="flex items-center gap-3">
                   <div className="bg-white/10 p-1.5 rounded-lg">
-                    <Building2 size={14} className="text-white/70" />
+                    <Building2 size={13} className="text-white/70" />
                   </div>
                   <span className="font-black text-white text-xs tracking-wide">Company Profile &amp; Certifications</span>
-                  <span className="text-white/45 text-[10px] font-mono hidden sm:block">GST: 29EYSPS5133L1ZF · Udyam: UDYAM-KR-03-0706248</span>
+                  <span className="text-white/40 text-[10px] font-mono hidden sm:block">GST: 29EYSPS5133L1ZF · Udyam: UDYAM-KR-03-0706248</span>
                 </div>
-                <ArrowRight size={13} className="text-white/40 group-hover:text-white shrink-0 transition-colors" />
+                <ArrowRight size={12} className="text-white/35 group-hover:text-white shrink-0 transition-colors" />
               </div>
             </Link>
 

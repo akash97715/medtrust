@@ -43,7 +43,7 @@ export const getEnquiries = () => req("/api/enquiries");
 
 // Auth
 export const verifyCode = (code: string) =>
-  req<{ valid: boolean }>("/api/auth/verify", { method: "POST", body: JSON.stringify({ code }) });
+  req<{ valid: boolean; role: string | null }>("/api/auth/verify", { method: "POST", body: JSON.stringify({ code }) });
 
 // Dashboard
 export const getDashboardSummary = () => req("/api/dashboard/summary");

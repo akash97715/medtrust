@@ -102,7 +102,7 @@ function ProductCard({ p }: { p: CatalogProduct }) {
 }
 
 export default function CatalogPage() {
-  const { isUnlocked } = useAuth();
+  const { isAdmin } = useAuth();
   const [search, setSearch] = useState("");
   const { data, isLoading } = useQuery({
     queryKey: ["catalog-products"],
@@ -140,7 +140,7 @@ export default function CatalogPage() {
               {all.length} product{all.length !== 1 ? "s" : ""} · All deliveries within 2 days of order confirmation
             </p>
           </div>
-          {isUnlocked && (
+          {isAdmin && (
             <Link
               href="/catalog-admin"
               className="flex items-center gap-1.5 text-xs bg-white/15 hover:bg-white/25 text-white px-3 py-2 rounded-lg transition-colors border border-white/20"
@@ -202,7 +202,7 @@ export default function CatalogPage() {
             <button onClick={() => setSearch("")} className="text-teal-600 text-sm mt-2 hover:underline">
               Clear search
             </button>
-          ) : isUnlocked ? (
+          ) : isAdmin ? (
             <Link href="/catalog-admin" className="text-teal-600 text-sm mt-2 hover:underline block">
               Add the first product →
             </Link>

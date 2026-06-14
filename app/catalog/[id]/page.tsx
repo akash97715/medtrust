@@ -3,11 +3,11 @@ import { use, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getCatalogProduct, createEnquiry } from "@/lib/api";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   ArrowLeft, Zap, Package, BadgeCheck, ChevronRight,
   Phone, X, CheckCircle2, Loader2, PhoneCall, MessageCircle,
 } from "lucide-react";
+
 
 const MEDTRUST_PHONE = "8789198929";
 
@@ -190,7 +190,6 @@ function EnquiryModal({
 // ── Page ──────────────────────────────────────────────────────────────────
 export default function CatalogDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const router = useRouter();
   const { data, isLoading } = useQuery({
     queryKey: ["catalog-product", id],
     queryFn: () => getCatalogProduct(id),
@@ -235,7 +234,7 @@ export default function CatalogDetailPage({ params }: { params: Promise<{ id: st
 
   return (
     <>
-      <div className="max-w-5xl space-y-6 pb-28 md:pb-10">
+      <div className="max-w-5xl space-y-6 pb-10">
 
         {/* ── Back navigation option 1: Breadcrumb ── */}
         <nav className="flex items-center gap-1.5 text-xs text-slate-400">
@@ -341,43 +340,17 @@ export default function CatalogDetailPage({ params }: { params: Promise<{ id: st
               </div>
             )}
 
-            {/* ── CTAs with back option 2 ── */}
-            <div className="space-y-3 pt-1">
+            {/* CTA */}
+            <div className="pt-1">
               <button
                 onClick={() => setShowEnquiry(true)}
                 className="w-full h-12 flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl transition-colors text-sm shadow-lg shadow-teal-500/20"
               >
                 <Phone size={15} /> Get Best Price
               </button>
-              <div className="grid grid-cols-2 gap-3">
-                {/* Back option 2: button in CTA area */}
-                <button
-                  onClick={() => router.back()}
-                  className="h-11 flex items-center justify-center gap-1.5 border border-slate-200 hover:border-teal-300 hover:bg-teal-50 text-slate-600 hover:text-teal-700 font-medium rounded-xl transition-colors text-sm"
-                >
-                  <ArrowLeft size={14} /> Go Back
-                </button>
-                {/* Back option 3: explicit catalog link */}
-                <Link
-                  href="/catalog"
-                  className="h-11 flex items-center justify-center gap-1.5 border border-slate-200 hover:border-teal-300 hover:bg-teal-50 text-slate-600 hover:text-teal-700 font-medium rounded-xl transition-colors text-sm"
-                >
-                  All Products
-                </Link>
-              </div>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* ── Back option 3: sticky floating back button (mobile) ── */}
-      <div className="fixed bottom-24 md:bottom-6 left-4 z-40 md:hidden">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 bg-white border border-slate-200 shadow-lg text-slate-700 font-semibold text-sm px-4 py-2.5 rounded-full hover:border-teal-300 hover:text-teal-700 transition-all active:scale-95"
-        >
-          <ArrowLeft size={14} /> Back
-        </button>
       </div>
 
       {showEnquiry && (
