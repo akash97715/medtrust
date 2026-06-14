@@ -189,16 +189,6 @@ export default function InvoicePage() {
             <h1 className="text-sm font-black text-slate-800 tracking-widest uppercase">Tax Invoice</h1>
           </div>
 
-          {/* ── Invoice meta (bill period row if needed) ── */}
-          <div className="border-b border-slate-300 px-4 py-2 grid grid-cols-3 gap-4">
-            <p className="text-xs"><span className="font-bold">Invoice No :</span> {invoiceNo(o?.order_id)}</p>
-            <p className="text-xs"><span className="font-bold">Invoice date :</span> {fmtDate(o?.order_date)}</p>
-            {(o?.bill_period_from || o?.bill_period_to)
-              ? <p className="text-xs"><span className="font-bold">Bill Period :</span> {fmtDate(o?.bill_period_from)} TO {fmtDate(o?.bill_period_to)}</p>
-              : <p className="text-xs text-slate-400">Bill Period : —</p>
-            }
-          </div>
-
           {/* ── Bill to Party ── */}
           <div className="border-b border-slate-300">
             <div className="bg-[#b8cce4] px-4 py-1 border-b border-slate-300">
