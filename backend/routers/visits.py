@@ -134,6 +134,7 @@ def update_visit(visit_id: str, body: VisitUpdate):
 
 @router.delete("/{visit_id}")
 def delete_visit(visit_id: str):
+    execute("DELETE FROM visit_required_items WHERE visit_id = %s", (visit_id,))
     execute("DELETE FROM visits WHERE id = %s", (visit_id,))
     return {"ok": True}
 
