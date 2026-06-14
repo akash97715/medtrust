@@ -61,7 +61,7 @@ def list_orders():
                soi.id AS item_id, soi.quantity, soi.unit_of_measure, soi.buy_rate, soi.sell_rate,
                (soi.quantity * COALESCE(soi.sell_rate, 0)) AS line_value
         FROM sales_orders so
-        JOIN parties p ON p.id = so.party_id
+        JOIN parties p ON p.id = so.party_id AND p.is_active = TRUE
         JOIN sales_order_items soi ON soi.sales_order_id = so.id
         JOIN products pr ON pr.id = soi.product_id
         ORDER BY so.order_date DESC, so.reference_number, p.name
@@ -72,6 +72,7 @@ def list_orders():
         SELECT COALESCE(SUM(soi.quantity * COALESCE(soi.sell_rate, 0)), 0)
         FROM sales_order_items soi
         JOIN sales_orders so ON so.id = soi.sales_order_id
+        JOIN parties p ON p.id = so.party_id AND p.is_active = TRUE
         WHERE so.order_status IN ('confirmed', 'delivered')
         """
     )

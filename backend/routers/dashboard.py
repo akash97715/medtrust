@@ -12,12 +12,19 @@ def get_summary():
         "total_agencies": scalar("SELECT COUNT(*) FROM parties WHERE party_type = 'agency' AND is_active = TRUE"),
         "total_products": scalar("SELECT COUNT(*) FROM products WHERE is_active = TRUE"),
         "total_visits": scalar("SELECT COUNT(*) FROM visits"),
-        "total_orders": scalar("SELECT COUNT(*) FROM sales_orders WHERE order_status IN ('confirmed', 'delivered')"),
+        "total_orders": scalar(
+            """
+            SELECT COUNT(*) FROM sales_orders so
+            JOIN parties p ON p.id = so.party_id AND p.is_active = TRUE
+            WHERE so.order_status IN ('confirmed', 'delivered')
+            """
+        ),
         "total_order_value": scalar(
             """
             SELECT COALESCE(SUM(soi.quantity * COALESCE(soi.sell_rate, 0)), 0)
             FROM sales_order_items soi
             JOIN sales_orders so ON so.id = soi.sales_order_id
+            JOIN parties p ON p.id = so.party_id AND p.is_active = TRUE
             WHERE so.order_status IN ('confirmed', 'delivered')
             """
         ),
