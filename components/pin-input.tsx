@@ -60,8 +60,8 @@ export function PinInput({ onComplete, loading, dark, reset = 0 }: PinInputProps
   };
 
   const box = dark
-    ? "w-11 h-13 text-center text-xl font-bold bg-white/8 border border-white/15 focus:border-teal-400 focus:bg-white/12 text-white rounded-xl outline-none transition-all caret-transparent placeholder-white/20 disabled:opacity-40"
-    : "w-11 h-13 text-center text-xl font-bold bg-slate-50 border-2 border-slate-200 focus:border-teal-400 focus:bg-white text-slate-800 rounded-xl outline-none transition-all caret-transparent placeholder-slate-300 disabled:opacity-40";
+    ? "w-11 h-13 text-center font-bold bg-white/8 border border-white/15 focus:border-teal-400 focus:bg-white/12 text-white rounded-xl outline-none transition-all caret-transparent placeholder-white/20 disabled:opacity-40"
+    : "w-11 h-13 text-center font-bold bg-slate-50 border-2 border-slate-200 focus:border-teal-400 focus:bg-white text-slate-800 rounded-xl outline-none transition-all caret-transparent placeholder-slate-300 disabled:opacity-40";
 
   return (
     <div className="flex gap-2 justify-center" onPaste={handlePaste}>
@@ -71,6 +71,8 @@ export function PinInput({ onComplete, loading, dark, reset = 0 }: PinInputProps
           ref={(el) => { refs.current[i] = el; }}
           type="password"
           inputMode="numeric"
+          pattern="[0-9]*"
+          autoComplete="one-time-code"
           maxLength={1}
           value={d}
           placeholder="·"
@@ -79,6 +81,7 @@ export function PinInput({ onComplete, loading, dark, reset = 0 }: PinInputProps
           onChange={(e) => handleChange(i, e.target.value)}
           onKeyDown={(e) => handleKeyDown(i, e)}
           onFocus={(e) => e.target.select()}
+          style={{ fontSize: '20px' }}
           className={box}
         />
       ))}

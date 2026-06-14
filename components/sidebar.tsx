@@ -324,7 +324,7 @@ export function MobileNav() {
         </div>
       )}
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0b1120] border-t border-white/[0.07] flex justify-around px-2 py-2">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0b1120] border-t border-white/[0.07] flex justify-around px-2 pt-2" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
         {primaryLinks.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
@@ -332,7 +332,7 @@ export function MobileNav() {
               key={href}
               href={href}
               className={cn(
-                "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-semibold transition-all",
+                "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-semibold transition-all active:scale-95 active:opacity-70",
                 active ? "text-teal-400 bg-white/[0.05]" : "text-white/60 hover:text-white"
               )}
             >
@@ -346,7 +346,7 @@ export function MobileNav() {
         {!isStaff ? (
           <button
             onClick={() => setLockModal("/visits")}
-            className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-semibold text-white/25 hover:text-white/55 transition-all"
+            className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-semibold text-white/25 hover:text-white/55 transition-all active:scale-95 active:opacity-70"
           >
             <Lock size={18} />
             Staff
@@ -355,7 +355,7 @@ export function MobileNav() {
           <button
             onClick={() => setShowMore((v) => !v)}
             className={cn(
-              "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-semibold transition-all",
+              "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-semibold transition-all active:scale-95 active:opacity-70",
               showMore || allMoreActive ? "text-teal-400 bg-white/[0.05]" : "text-white/60 hover:text-white"
             )}
           >

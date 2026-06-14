@@ -86,4 +86,22 @@
   h1, h2, h3 {
     letter-spacing: -0.02em;
   }
+  /* Prevent overscroll bounce causing layout jumps */
+  body {
+    overscroll-behavior-y: contain;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  /* Remove tap highlight flash on all interactive elements */
+  a, button, [role="button"], input, select, textarea, label {
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Remove 300ms click delay on touch devices */
+  a, button, [role="button"] {
+    touch-action: manipulation;
+  }
+  /* Prevent iOS zoom on input focus — requires font-size >= 16px */
+  input, textarea, select {
+    font-size: max(16px, 1em);
+  }
 }
