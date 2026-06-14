@@ -40,13 +40,13 @@ export default function EditVisitPage({ params }: { params: Promise<{ id: string
 
   const updateMut = useMutation({
     mutationFn: (values: unknown) => updateVisit(id, values),
-    onSuccess: () => { toast.success("Visit updated"); qc.clear(); router.push("/visits"); },
+    onSuccess: () => { toast.success("Visit updated"); qc.removeQueries({ queryKey: ["visits"] }); qc.removeQueries({ queryKey: ["visit", id] }); router.push("/visits"); },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const deleteMut = useMutation({
     mutationFn: () => deleteVisit(id),
-    onSuccess: () => { toast.success("Visit deleted"); qc.clear(); router.push("/visits"); },
+    onSuccess: () => { toast.success("Visit deleted"); qc.removeQueries({ queryKey: ["visits"] }); router.push("/visits"); },
     onError: (e: Error) => toast.error(e.message),
   });
 
