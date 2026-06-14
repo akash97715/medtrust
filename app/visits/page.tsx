@@ -19,7 +19,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function VisitsPage() {
   const [search, setSearch] = useState("");
-  const { data, isLoading } = useQuery({ queryKey: ["visits"], queryFn: getVisits });
+  const { data, isLoading } = useQuery({ queryKey: ["visits"], queryFn: getVisits, staleTime: 0, refetchOnMount: "always" });
 
   const rows = (data as Record<string, unknown>[] ?? []).filter(
     (r) => !search ||
