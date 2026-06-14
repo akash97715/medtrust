@@ -2,7 +2,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import dashboard, parties, products, visits, orders, pricing, auth
+from routers import dashboard, parties, products, visits, orders, pricing, auth, catalog, enquiries
 from database import execute
 
 app = FastAPI(title="MedTrust Healthcare API", version="2.0.0")
@@ -31,6 +31,8 @@ app.add_middleware(
 )
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(catalog.router, prefix="/api/catalog", tags=["catalog"])
+app.include_router(enquiries.router, prefix="/api/enquiries", tags=["enquiries"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
 app.include_router(parties.router, prefix="/api/parties", tags=["parties"])
 app.include_router(products.router, prefix="/api/products", tags=["products"])
@@ -54,6 +56,47 @@ def run_migrations():
         )
         """,
         "INSERT INTO access_codes (code) VALUES ('97715') ON CONFLICT (code) DO NOTHING",
+        """
+        CREATE TABLE IF NOT EXISTS catalog_products (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            name TEXT NOT NULL,
+            description TEXT NOT NULL,
+            category TEXT,
+            brand TEXT,
+            unit TEXT,
+            delivery_days INTEGER DEFAULT 2,
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS catalog_product_images (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            product_id UUID REFERENCES catalog_products(id) ON DELETE CASCADE,
+            image_url TEXT NOT NULL,
+            sort_order INTEGER DEFAULT 0,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS catalog_product_specs (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            product_id UUID REFERENCES catalog_products(id) ON DELETE CASCADE,
+            spec_key TEXT NOT NULL,
+            spec_value TEXT NOT NULL,
+            sort_order INTEGER DEFAULT 0
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS product_enquiries (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            product_id UUID,
+            product_name TEXT NOT NULL,
+            visitor_phone VARCHAR(20),
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        )
+        """,
         "ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS bill_period_from DATE",
         "ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS bill_period_to DATE",
         "ALTER TABLE sales_order_items ADD COLUMN IF NOT EXISTS hsn_code VARCHAR(20)",

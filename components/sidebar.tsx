@@ -7,10 +7,10 @@ import { useAuth } from "@/lib/auth-context";
 import { PinInput } from "@/components/pin-input";
 import {
   LayoutDashboard, Users, Package, CalendarCheck, ShoppingCart,
-  DollarSign, PlusCircle, MoreHorizontal, X, Building2, Lock,
+  DollarSign, PlusCircle, MoreHorizontal, X, Building2, Lock, Store, UserCheck,
 } from "lucide-react";
 
-const LOCKED_HREFS = new Set(["/dashboard", "/products", "/orders", "/pricing"]);
+const LOCKED_HREFS = new Set(["/dashboard", "/products", "/orders", "/pricing", "/visitors"]);
 
 const mainLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -19,6 +19,7 @@ const mainLinks = [
   { href: "/visits", label: "Visits", icon: CalendarCheck },
   { href: "/orders", label: "Orders", icon: ShoppingCart },
   { href: "/pricing", label: "Pricing", icon: DollarSign },
+  { href: "/visitors", label: "Visitors", icon: UserCheck },
 ];
 
 function LockModal({ targetHref, onClose }: { targetHref: string; onClose: () => void }) {
@@ -153,7 +154,43 @@ export function Sidebar() {
           );
         })}
 
-        <div className="mt-5 pt-4 border-t border-white/5 space-y-0.5">
+        {/* Product Catalog — always highlighted CTA */}
+        <div className="mt-4 pt-4 border-t border-white/5 space-y-1">
+          <Link
+            href="/catalog"
+            className={cn(
+              "relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-semibold transition-all duration-150",
+              pathname === "/catalog" || pathname.startsWith("/catalog/")
+                ? "bg-amber-500 text-white shadow-lg shadow-amber-500/30"
+                : "bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 hover:text-amber-300"
+            )}
+          >
+            <Store size={15} />
+            <span className="flex-1">Product Catalog</span>
+            {!(pathname === "/catalog" || pathname.startsWith("/catalog/")) && (
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
+              </span>
+            )}
+          </Link>
+          {/* Catalog admin — only visible when unlocked */}
+          {isUnlocked && (
+            <Link
+              href="/catalog-admin"
+              className={cn(
+                "flex items-center gap-3 pl-9 pr-3 py-2 rounded-lg text-[12px] font-medium transition-all duration-150",
+                pathname.startsWith("/catalog-admin")
+                  ? "text-amber-300 bg-amber-500/10"
+                  : "text-white/25 hover:text-amber-300 hover:bg-amber-500/8"
+              )}
+            >
+              Manage Catalog
+            </Link>
+          )}
+        </div>
+
+        <div className="mt-3 pt-3 border-t border-white/5 space-y-0.5">
           <Link
             href="/company"
             className={cn(
@@ -207,6 +244,8 @@ export function MobileNav() {
   ];
 
   const moreLinks = [
+    { href: "/catalog", label: "Product Catalog", icon: Store, special: true },
+    { href: "/visitors", label: "Visitors", icon: UserCheck },
     { href: "/products", label: "Products", icon: Package },
     { href: "/pricing", label: "Pricing", icon: DollarSign },
     { href: "/company", label: "Company", icon: Building2 },
@@ -238,7 +277,7 @@ export function MobileNav() {
             className="absolute bottom-20 left-3 right-3 bg-[#0c1220] border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {moreLinks.map(({ href, label, icon: Icon }) => {
+            {moreLinks.map(({ href, label, icon: Icon, special }) => {
               const active = pathname === href || pathname.startsWith(href + "/");
               const locked = LOCKED_HREFS.has(href) && !isUnlocked;
               return (
@@ -247,11 +286,19 @@ export function MobileNav() {
                   onClick={() => handleMoreLinkClick(href)}
                   className={cn(
                     "flex items-center gap-4 px-5 py-4 text-sm font-medium border-b border-white/5 last:border-0 transition-colors w-full text-left",
-                    active ? "text-teal-400 bg-white/5" : locked ? "text-white/30" : "text-white/60 hover:text-white hover:bg-white/5"
+                    special
+                      ? "text-amber-400 bg-amber-500/10 hover:bg-amber-500/20"
+                      : active ? "text-teal-400 bg-white/5" : locked ? "text-white/30" : "text-white/60 hover:text-white hover:bg-white/5"
                   )}
                 >
                   <Icon size={18} />
                   <span className="flex-1">{label}</span>
+                  {special && !active && (
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
+                    </span>
+                  )}
                   {locked && <Lock size={11} className="text-white/20" />}
                 </button>
               );

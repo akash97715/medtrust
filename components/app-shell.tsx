@@ -8,7 +8,7 @@ import { PinInput } from "@/components/pin-input";
 import { Lock } from "lucide-react";
 
 // Routes that require the employee code to access
-const PROTECTED_PREFIXES = ["/dashboard", "/products", "/orders", "/pricing"];
+const PROTECTED_PREFIXES = ["/dashboard", "/products", "/orders", "/pricing", "/catalog-admin", "/visitors"];
 
 function isProtected(pathname: string): boolean {
   return PROTECTED_PREFIXES.some(

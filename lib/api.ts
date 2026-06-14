@@ -26,6 +26,21 @@ async function req<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
+// Public Catalog
+export const getCatalogProducts = () => req("/api/catalog");
+export const getCatalogProduct = (id: string) => req(`/api/catalog/${id}`);
+export const createCatalogProduct = (data: unknown) =>
+  req("/api/catalog", { method: "POST", body: JSON.stringify(data) });
+export const deleteCatalogProduct = (id: string) =>
+  req(`/api/catalog/${id}`, { method: "DELETE" });
+export const updateCatalogProduct = (id: string, data: unknown) =>
+  req(`/api/catalog/${id}`, { method: "PATCH", body: JSON.stringify(data) });
+
+// Enquiries
+export const createEnquiry = (data: { product_id: string; product_name: string; visitor_phone?: string }) =>
+  req("/api/enquiries", { method: "POST", body: JSON.stringify(data) });
+export const getEnquiries = () => req("/api/enquiries");
+
 // Auth
 export const verifyCode = (code: string) =>
   req<{ valid: boolean }>("/api/auth/verify", { method: "POST", body: JSON.stringify({ code }) });
