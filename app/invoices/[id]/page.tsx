@@ -6,63 +6,113 @@ import { Printer, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
-// ── Update these constants with your details ──────────────────
-const COMPANY = {
-  name: "MEDTRUST HEALTHCARE",
+// ── Company constants ──────────────────────────────────────────
+const CO = {
+  name:    "MEDTRUST HEALTHCARE",
   tagline: "Medical & Surgical Supply Distributors",
-  gst: "29EYSPS5133L1ZF",
-  udyam: "UDYAM-KR-03-0706248",
-  bank: "Bank of Maharashtra",
+  gst:     "29EYSPS5133L1ZF",
+  udyam:   "UDYAM-KR-03-0706248",
+  bank:    "BANK OF MAHARASHTRA",
   account: "60528282863",
-  ifsc: "MAHB0002126",
-  upi: "medtrusthealthcare12@okicici",   // ← update with your actual UPI ID
+  ifsc:    "MAHB0002126",
+  upi:     "medtrusthealthcare12@okicici",  // ← update with real UPI ID
 };
 
-function fmt(v: unknown) { return v == null ? "—" : String(v); }
-function money(n: number) {
-  return `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+// GST rate — change to 0.05 or 0.12 if applicable for your products
+const GST_RATE = 0.12; // 12% → CGST 6% + SGST 6%
+
+// ── Helpers ────────────────────────────────────────────────────
+function fmt(v: unknown) { return v == null || v === "" ? "—" : String(v); }
+function n(v: unknown) { return Number(v) || 0; }
+function money(val: number) {
+  return `₹${val.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 function fmtDate(d: unknown) {
   if (!d) return "—";
   const dt = new Date(String(d));
-  return isNaN(dt.getTime()) ? String(d) : dt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  return isNaN(dt.getTime()) ? String(d) : dt.toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 function invoiceNo(id: unknown) {
-  return `MT-${new Date().getFullYear()}-${String(id).padStart(5, "0")}`;
-}
-function upiQr(upiId: string, amount: number, name: string) {
-  const data = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&am=${amount.toFixed(2)}&cu=INR`;
-  return `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(data)}&size=110x110&margin=4&color=0c1220`;
+  return `MT/${new Date().getFullYear()}-${String(new Date().getFullYear() + 1).slice(2)}/${String(id).padStart(4, "0")}`;
 }
 
+// Amount in words (Indian numbering)
+const W1 = ["", "ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE",
+  "TEN", "ELEVEN", "TWELVE", "THIRTEEN", "FOURTEEN", "FIFTEEN", "SIXTEEN", "SEVENTEEN", "EIGHTEEN", "NINETEEN"];
+const W10 = ["", "", "TWENTY", "THIRTY", "FORTY", "FIFTY", "SIXTY", "SEVENTY", "EIGHTY", "NINETY"];
+function twoDigits(x: number) {
+  return x < 20 ? W1[x] : W10[Math.floor(x / 10)] + (x % 10 ? " " + W1[x % 10] : "");
+}
+function amountInWords(amount: number): string {
+  const intPart = Math.round(amount);
+  if (intPart === 0) return "ZERO RUPEES ONLY";
+  const cr = Math.floor(intPart / 10000000);
+  const lk = Math.floor((intPart % 10000000) / 100000);
+  const th = Math.floor((intPart % 100000) / 1000);
+  const hu = Math.floor((intPart % 1000) / 100);
+  const re = intPart % 100;
+  let s = "";
+  if (cr) s += twoDigits(cr) + " CRORE ";
+  if (lk) s += twoDigits(lk) + " LAKH ";
+  if (th) s += twoDigits(th) + " THOUSAND ";
+  if (hu) s += W1[hu] + " HUNDRED ";
+  if (re) s += (s ? "AND " : "") + twoDigits(re);
+  return s.trim() + " RUPEES ONLY";
+}
+
+function upiQr(upiId: string, amount: number) {
+  const data = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(CO.name)}&am=${amount.toFixed(2)}&cu=INR`;
+  return `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(data)}&size=100x100&margin=4&color=0c1220`;
+}
+
+// ── Cell helper ────────────────────────────────────────────────
+function Td({ children, right, bold, small, gray }: {
+  children: React.ReactNode; right?: boolean; bold?: boolean; small?: boolean; gray?: boolean;
+}) {
+  return (
+    <td className={`border border-slate-300 px-2 py-1.5 ${right ? "text-right" : "text-left"} ${bold ? "font-bold" : ""} ${small ? "text-[11px]" : "text-xs"} ${gray ? "bg-slate-50 text-slate-500" : "text-slate-800"}`}>
+      {children}
+    </td>
+  );
+}
+function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
+  return (
+    <th className={`border border-slate-300 bg-[#b8cce4] px-2 py-2 text-[11px] font-bold text-slate-700 ${right ? "text-right" : "text-center"}`}>
+      {children}
+    </th>
+  );
+}
+
+// ── Main ───────────────────────────────────────────────────────
 export default function InvoicePage() {
   const { id } = useParams<{ id: string }>();
   const { data: order, isLoading } = useQuery({ queryKey: ["order", id], queryFn: () => getOrder(id) });
-
   const o = order as Record<string, unknown> | undefined;
   const items = (o?.items as Record<string, unknown>[]) ?? [];
-  const partyId = o?.party_id;
 
   const { data: partyData } = useQuery({
-    queryKey: ["party", partyId],
-    queryFn: () => getParty(String(partyId)),
-    enabled: !!partyId,
+    queryKey: ["party", o?.party_id],
+    queryFn: () => getParty(String(o?.party_id)),
+    enabled: !!o?.party_id,
   });
   const party = partyData as Record<string, unknown> | undefined;
 
-  // Calculate totals from all line items
-  const subtotal = items.reduce((sum, item) => {
-    return sum + Number(item.quantity ?? 0) * Number(item.sell_rate ?? 0);
-  }, 0);
-  const total = subtotal;
+  // Calculations
+  const subtotal    = items.reduce((s, it) => s + n(it.quantity) * n(it.sell_rate), 0);
+  const discount    = 0; // update if discount logic added
+  const taxable     = subtotal - discount;
+  const cgst        = taxable * (GST_RATE / 2);
+  const sgst        = taxable * (GST_RATE / 2);
+  const grandTotal  = taxable + cgst + sgst;
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-        <p className="text-slate-500 text-sm">Loading invoice…</p>
-      </div>
-    );
-  }
+  if (isLoading) return (
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+      <p className="text-slate-500 text-sm">Loading invoice…</p>
+    </div>
+  );
+
+  const partyAddress = [party?.address_line, party?.city, party?.district, party?.state]
+    .filter(Boolean).join(", ");
 
   return (
     <>
@@ -72,231 +122,219 @@ export default function InvoicePage() {
           .no-print { display: none !important; }
           .invoice-wrapper { background: white !important; padding: 0 !important; }
           .invoice-page { box-shadow: none !important; border-radius: 0 !important; max-width: 100% !important; }
-          @page { size: A4 portrait; margin: 10mm; }
+          @page { size: A4 portrait; margin: 8mm 10mm; }
         }
       `}</style>
 
-      {/* ── Controls (hidden on print) ── */}
+      {/* Controls */}
       <div className="no-print bg-slate-100 px-4 pt-6 pb-3">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <Link href="/orders" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <Link href="/orders" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800">
             <ArrowLeft size={15} /> Back to Orders
           </Link>
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-2 bg-[#0c1220] hover:bg-slate-800 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-md"
+            className="flex items-center gap-2 bg-[#0c1220] hover:bg-slate-800 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-md transition-colors"
           >
             <Printer size={15} /> Print / Save PDF
           </button>
         </div>
       </div>
 
-      {/* ── Invoice document (always visible, including in print) ── */}
+      {/* Invoice document */}
       <div className="invoice-wrapper bg-slate-100 px-4 pb-10 pt-3">
-        <div className="invoice-page max-w-3xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div className="invoice-page max-w-4xl mx-auto bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden font-sans">
 
-          {/* ── Header ── */}
-          <div className="bg-[#0c1220] px-8 pt-7 pb-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-teal-500 flex items-center justify-center shadow-lg shadow-teal-500/30 shrink-0">
-                    <span className="text-white font-black text-base">M</span>
-                  </div>
-                  <div>
-                    <p className="text-white font-black text-xl tracking-tight leading-none">{COMPANY.name}</p>
-                    <p className="text-teal-400 text-[11px] font-semibold tracking-wide mt-0.5">{COMPANY.tagline}</p>
-                  </div>
-                </div>
-                <div className="space-y-0.5 ml-1">
-                  <p className="text-white/50 text-[11px] font-mono">GST: <span className="text-white/80 font-semibold">{COMPANY.gst}</span></p>
-                  <p className="text-white/50 text-[11px] font-mono">Udyam: <span className="text-white/80 font-semibold">{COMPANY.udyam}</span></p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-white/30 text-[10px] font-bold uppercase tracking-[0.2em] mb-1">Tax Invoice</p>
-                <p className="text-white font-black text-2xl tracking-tight">{invoiceNo(o?.order_id)}</p>
-                <p className="text-white/50 text-xs mt-1">Date: <span className="text-white/80">{fmtDate(o?.order_date)}</span></p>
-                {o?.reference_number && (
-                  <p className="text-white/40 text-[11px] mt-0.5">Ref: {fmt(o.reference_number)}</p>
-                )}
-              </div>
+          {/* ── Title bar ── */}
+          <div className="bg-[#b8cce4] text-center py-2 border-b border-slate-300">
+            <h1 className="text-base font-black text-slate-800 tracking-wide">Tax Invoice</h1>
+          </div>
+
+          {/* ── Invoice meta ── */}
+          <div className="grid grid-cols-2 border-b border-slate-300">
+            <div className="px-4 py-2 border-r border-slate-300 space-y-0.5">
+              <p className="text-xs"><span className="font-bold">Invoice No :</span> {invoiceNo(o?.order_id)}</p>
+              <p className="text-xs"><span className="font-bold">Invoice date :</span> {fmtDate(o?.order_date)}</p>
+              <p className="text-xs"><span className="font-bold">Bill Period :</span> {fmtDate(o?.order_date)} TO {fmtDate(o?.order_date)}</p>
+            </div>
+            <div className="px-4 py-2 space-y-0.5">
+              <p className="text-[11px] text-slate-500">GSTIN: <span className="font-bold text-slate-700">{CO.gst}</span></p>
+              <p className="text-[11px] text-slate-500">Udyam: <span className="font-bold text-slate-700">{CO.udyam}</span></p>
             </div>
           </div>
 
-          {/* Accent line */}
-          <div className="h-[3px] bg-gradient-to-r from-teal-600 via-teal-400 to-teal-600" />
-
-          {/* ── Bill To + Order Info ── */}
-          <div className="grid grid-cols-2 border-b border-slate-100">
-            <div className="px-8 py-5 border-r border-slate-100">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400 mb-2">Bill To</p>
-              <p className="font-black text-slate-800 text-base leading-tight">{fmt(o?.party_name)}</p>
-              {party?.party_type && (
-                <p className="text-teal-600 text-xs font-semibold capitalize mt-0.5">{fmt(party.party_type)}</p>
-              )}
-              <div className="mt-1.5 space-y-0.5">
-                {party?.address_line && <p className="text-slate-500 text-xs">{fmt(party.address_line)}</p>}
-                {(party?.city || party?.district) && (
-                  <p className="text-slate-500 text-xs">{[party.city, party.district, party.state].filter(Boolean).join(", ")}</p>
-                )}
-                {party?.contact_person && (
-                  <p className="text-slate-500 text-xs">Attn: {fmt(party.contact_person)}</p>
-                )}
-              </div>
+          {/* ── Bill to Party ── */}
+          <div className="border-b border-slate-300">
+            <div className="bg-[#b8cce4] px-4 py-1 border-b border-slate-300">
+              <p className="text-[11px] font-black text-slate-700">Bill to Party</p>
             </div>
-            <div className="px-8 py-5">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400 mb-2">Invoice Details</p>
-              <div className="space-y-1.5">
-                {[
-                  { label: "Invoice No", value: invoiceNo(o?.order_id) },
-                  { label: "Date", value: fmtDate(o?.order_date) },
-                  { label: "Status", value: fmt(o?.order_status).toUpperCase() },
-                ].map(({ label, value }) => (
-                  <div key={label} className="flex justify-between">
-                    <span className="text-slate-400 text-xs">{label}</span>
-                    <span className={`text-xs font-bold ${label === "Status" ? "text-teal-600" : "text-slate-700"}`}>{value}</span>
-                  </div>
-                ))}
-              </div>
+            <div className="px-4 py-2">
+              <p className="text-sm font-black text-slate-800">Name : {fmt(o?.party_name)}</p>
+              {partyAddress && <p className="text-xs text-slate-600 mt-0.5">Address: {partyAddress}</p>}
+              {party?.contact_person && <p className="text-xs text-slate-600">Attn: {fmt(party.contact_person)}</p>}
+              {(party as Record<string, unknown>)?.gst_number
+                ? <p className="text-xs text-slate-600 mt-0.5">GSTIN: {fmt((party as Record<string, unknown>).gst_number)}</p>
+                : <p className="text-xs text-slate-400 mt-0.5 italic">GSTIN: Not provided</p>
+              }
             </div>
           </div>
 
-          {/* ── Items Table ── */}
-          <div className="px-8 py-5">
-            <table className="w-full text-sm">
+          {/* ── Items table ── */}
+          <div className="px-4 py-3 border-b border-slate-300">
+            <table className="w-full border-collapse">
               <thead>
-                <tr className="border-b-2 border-slate-800">
-                  <th className="text-left pb-2.5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-500 w-7">#</th>
-                  <th className="text-left pb-2.5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-500">Description</th>
-                  <th className="text-right pb-2.5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-500 w-16">Qty</th>
-                  <th className="text-right pb-2.5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-500 w-14">Unit</th>
-                  <th className="text-right pb-2.5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-500 w-24">Rate</th>
-                  <th className="text-right pb-2.5 text-[10px] font-black uppercase tracking-[0.15em] text-slate-500 w-24">Amount</th>
+                <tr>
+                  <Th>SL.No</Th>
+                  <Th>Product Description</Th>
+                  <Th>HSN Code</Th>
+                  <Th right>Qty</Th>
+                  <Th right>Rate</Th>
+                  <Th right>Amount</Th>
+                  <Th right>Discount</Th>
+                  <Th right>Taxable Value</Th>
+                  <Th right>Total</Th>
                 </tr>
               </thead>
               <tbody>
                 {items.length > 0 ? items.map((item, i) => {
-                  const qty = Number(item.quantity ?? 0);
-                  const rate = Number(item.sell_rate ?? 0);
+                  const qty    = n(item.quantity);
+                  const rate   = n(item.sell_rate);
+                  const amount = qty * rate;
+                  const disc   = 0;
+                  const taxVal = amount - disc;
                   return (
-                    <tr key={i} className="border-b border-slate-100 last:border-0">
-                      <td className="py-3 text-slate-400 text-xs">{i + 1}</td>
-                      <td className="py-3">
-                        <p className="font-bold text-slate-800">{fmt(item.product_name)}</p>
-                        {item.notes && <p className="text-slate-400 text-xs mt-0.5">{fmt(item.notes)}</p>}
-                      </td>
-                      <td className="py-3 text-right font-semibold text-slate-700">{qty}</td>
-                      <td className="py-3 text-right text-slate-500 text-xs">{fmt(item.unit_of_measure)}</td>
-                      <td className="py-3 text-right font-semibold text-slate-700">{money(rate)}</td>
-                      <td className="py-3 text-right font-bold text-slate-800">{money(qty * rate)}</td>
+                    <tr key={i}>
+                      <Td>{i + 1}</Td>
+                      <Td><span className="font-semibold">{fmt(item.product_name)}</span></Td>
+                      <Td>{fmt(item.hsn_code)}</Td>
+                      <Td right>{qty}</Td>
+                      <Td right>{rate.toLocaleString("en-IN")}</Td>
+                      <Td right>{amount.toLocaleString("en-IN")}</Td>
+                      <Td right>{disc}</Td>
+                      <Td right>{taxVal.toLocaleString("en-IN")}</Td>
+                      <Td right bold>{taxVal.toLocaleString("en-IN")}</Td>
                     </tr>
                   );
                 }) : (
                   <tr>
-                    <td colSpan={6} className="py-6 text-center text-slate-400 text-sm">No items found</td>
+                    <Td>{""}</Td>
+                    <Td>{""}</Td><Td>{""}</Td><Td right>{""}</Td><Td right>{""}</Td>
+                    <Td right>{""}</Td><Td right>{""}</Td><Td right>{""}</Td><Td right>{""}</Td>
                   </tr>
                 )}
+                {/* Total row */}
+                <tr className="bg-slate-50">
+                  <td colSpan={3} className="border border-slate-300 px-2 py-1.5 text-xs font-black text-center text-slate-700">Total</td>
+                  <Td right bold>{items.reduce((s, it) => s + n(it.quantity), 0)}</Td>
+                  <Td right>{""}</Td>
+                  <Td right bold>{subtotal.toLocaleString("en-IN")}</Td>
+                  <Td right bold>{discount}</Td>
+                  <Td right bold>{taxable.toLocaleString("en-IN")}</Td>
+                  <Td right bold>{taxable.toLocaleString("en-IN")}</Td>
+                </tr>
               </tbody>
             </table>
-
-            {/* Totals */}
-            <div className="flex justify-end mt-3">
-              <div className="w-56 space-y-1.5">
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">Subtotal</span>
-                  <span className="font-semibold text-slate-700">{money(subtotal)}</span>
-                </div>
-                <div className="border-t-2 border-slate-800 pt-2 flex justify-between">
-                  <span className="font-black text-slate-800">Total Payable</span>
-                  <span className="font-black text-teal-600 text-base">{money(total)}</span>
-                </div>
-              </div>
-            </div>
           </div>
 
-          {/* ── Payment Details ── */}
-          <div className="mx-8 mb-5 rounded-xl border border-slate-200 overflow-hidden">
-            <div className="bg-slate-50 px-5 py-2 border-b border-slate-200">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Payment Details</p>
-            </div>
-            <div className="grid grid-cols-[1fr_auto] divide-x divide-slate-200">
-              {/* Bank + UPI text */}
-              <div className="px-5 py-4 space-y-4">
-                {/* Bank */}
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Bank Transfer</p>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { label: "Bank", value: COMPANY.bank },
-                      { label: "Account No.", value: COMPANY.account },
-                      { label: "IFSC", value: COMPANY.ifsc },
-                    ].map(({ label, value }) => (
-                      <div key={label}>
-                        <p className="text-[10px] text-slate-400 font-semibold mb-0.5">{label}</p>
-                        <p className="font-black text-slate-800 text-[13px] font-mono">{value}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                {/* UPI */}
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-1.5">UPI Payment</p>
-                  <div className="flex items-center gap-2">
-                    <div className="bg-teal-50 border border-teal-200 rounded-lg px-3 py-1.5">
-                      <p className="font-mono font-black text-teal-700 text-sm">{COMPANY.upi}</p>
-                    </div>
-                    <p className="text-slate-400 text-xs">Scan QR or pay to this UPI ID</p>
-                  </div>
-                </div>
+          {/* ── Amount in words + GST breakdown ── */}
+          <div className="grid grid-cols-[1fr_280px] border-b border-slate-300">
+            {/* Left: amount in words */}
+            <div className="border-r border-slate-300">
+              <div className="bg-[#b8cce4] px-4 py-1 border-b border-slate-300">
+                <p className="text-[11px] font-black text-slate-700">Total Invoice amount in words</p>
               </div>
-              {/* QR Code */}
-              <div className="px-5 py-4 flex flex-col items-center justify-center gap-1.5">
-                <Image
-                  src={upiQr(COMPANY.upi, total, COMPANY.name)}
-                  alt="UPI QR Code"
-                  width={110}
-                  height={110}
-                  className="rounded-lg border border-slate-200"
-                  unoptimized
-                />
-                <p className="text-[10px] text-slate-400 font-semibold text-center">Scan to Pay</p>
-                <p className="text-[10px] text-teal-600 font-black">{money(total)}</p>
+              <div className="px-4 py-4 flex items-center min-h-[80px]">
+                <p className="text-xs font-bold text-slate-700 uppercase leading-relaxed">
+                  {amountInWords(grandTotal)}
+                </p>
               </div>
             </div>
-          </div>
-
-          {/* ── Signature ── */}
-          <div className="grid grid-cols-2 mx-8 mb-8 pt-2">
+            {/* Right: GST table */}
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Note</p>
-              <p className="text-xs text-slate-400 leading-relaxed max-w-xs">
-                Please quote the invoice number in your transfer reference. Payment due upon receipt.
-              </p>
+              <table className="w-full border-collapse h-full">
+                <tbody>
+                  {[
+                    { label: "Total Amount before Tax", value: money(taxable) },
+                    { label: `CGST @ ${(GST_RATE / 2 * 100).toFixed(0)}%`, value: money(cgst) },
+                    { label: `SGST @ ${(GST_RATE / 2 * 100).toFixed(0)}%`, value: money(sgst) },
+                    { label: "IGST @ 18%", value: "-" },
+                    { label: "Grand total", value: money(grandTotal), bold: true },
+                    { label: "GST on Reverse Charge", value: "-" },
+                  ].map(({ label, value, bold }) => (
+                    <tr key={label}>
+                      <td className={`border border-slate-300 px-3 py-1 text-[11px] ${bold ? "font-black bg-slate-50" : "text-slate-600"}`}>{label}</td>
+                      <td className={`border border-slate-300 px-3 py-1 text-[11px] text-right ${bold ? "font-black text-slate-800" : "text-slate-700"}`}>{value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div className="text-right">
-              <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Authorised Signatory</p>
-              <div className="inline-flex flex-col items-center">
-                <div className="w-24 h-24 rounded-full border-2 border-dashed border-slate-200 flex items-center justify-center mb-2">
-                  <div className="text-center">
-                    <div className="w-8 h-8 rounded-full bg-teal-500/15 flex items-center justify-center mx-auto mb-0.5">
-                      <span className="text-teal-600 font-black text-sm">M</span>
+          </div>
+
+          {/* ── Bank Details + Certification ── */}
+          <div className="grid grid-cols-[1fr_280px] border-b border-slate-300">
+            {/* Bank */}
+            <div className="border-r border-slate-300">
+              <div className="bg-[#b8cce4] px-4 py-1 border-b border-slate-300">
+                <p className="text-[11px] font-black text-slate-700">Bank Details</p>
+              </div>
+              <div className="px-4 py-3 grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <p className="text-xs"><span className="font-bold">Bank Name :</span> {CO.bank}</p>
+                  <p className="text-xs"><span className="font-bold">Bank A/C :</span> {CO.account}</p>
+                  <p className="text-xs"><span className="font-bold">Bank IFSC :</span> {CO.ifsc}</p>
+                  <p className="text-xs"><span className="font-bold">GSTIN :</span> {CO.gst}</p>
+                </div>
+                <div className="flex flex-col items-center justify-center gap-1">
+                  <Image
+                    src={upiQr(CO.upi, grandTotal)}
+                    alt="UPI QR"
+                    width={90}
+                    height={90}
+                    className="rounded border border-slate-200"
+                    unoptimized
+                  />
+                  <p className="text-[10px] font-bold text-slate-500">UPI: {CO.upi}</p>
+                  <p className="text-[10px] text-teal-600 font-black">Scan to Pay {money(grandTotal)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Certification */}
+            <div className="px-4 py-3 flex flex-col justify-between">
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                Certified that the particulars given above are true and correct
+              </p>
+              <div className="mt-4">
+                <p className="text-[11px] font-black text-slate-700 text-right">FOR, {CO.name}</p>
+                {/* Seal area */}
+                <div className="flex justify-end mt-2">
+                  <div className="w-20 h-20 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="w-7 h-7 rounded-full bg-teal-100 flex items-center justify-center mx-auto">
+                        <span className="text-teal-700 font-black text-xs">M</span>
+                      </div>
+                      <p className="text-slate-300 text-[8px] font-bold mt-0.5">SEAL</p>
                     </div>
-                    <p className="text-slate-300 text-[9px] font-bold tracking-wide">SEAL</p>
                   </div>
                 </div>
-                <p className="text-slate-700 font-black text-xs">{COMPANY.name}</p>
-                <p className="text-slate-400 text-[10px]">Authorised Signatory</p>
               </div>
             </div>
           </div>
 
-          {/* ── Footer ── */}
-          <div className="h-[3px] bg-gradient-to-r from-teal-600 via-teal-400 to-teal-600" />
-          <div className="bg-[#0c1220] px-8 py-3 flex items-center justify-between">
-            <p className="text-white/30 text-[10px] font-mono">GST: {COMPANY.gst} · Udyam: {COMPANY.udyam}</p>
-            <p className="text-white/20 text-[10px]">This is a computer-generated invoice</p>
+          {/* ── Bottom strip ── */}
+          <div className="grid grid-cols-3 border-t border-slate-300">
+            {["Terms & conditions", "Common Seal", "Authorised signatory"].map((label, i) => (
+              <div
+                key={label}
+                className={`px-4 py-3 text-center ${i < 2 ? "border-r border-slate-300" : ""}`}
+              >
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-wide">{label}</p>
+                <div className="h-10" />
+              </div>
+            ))}
           </div>
+
         </div>
       </div>
     </>
