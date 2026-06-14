@@ -160,6 +160,7 @@ export default function InvoicePage() {
                   <div>
                     <p className="text-white font-black text-xl tracking-tight leading-none">{CO.name}</p>
                     <p className="text-teal-400 text-[11px] font-semibold tracking-wide mt-0.5">{CO.tagline}</p>
+                    <p className="text-white/30 text-[9px] font-bold tracking-[0.14em] mt-1 uppercase">Reliable · Rapid · Cost-Optimal</p>
                   </div>
                 </div>
                 <div className="space-y-0.5 ml-1">

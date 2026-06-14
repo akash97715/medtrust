@@ -45,7 +45,8 @@ export default function CompanyPage() {
             </div>
             <div>
               <p className="text-white font-bold text-xl tracking-tight leading-none">MedTrust Healthcare</p>
-              <p className="text-white/40 text-xs mt-1 font-medium tracking-wide">MEDTRUST HEALTH CARE</p>
+              <p className="text-white/40 text-xs mt-0.5 font-medium tracking-wide">MEDTRUST HEALTH CARE</p>
+              <p className="text-white/25 text-[10px] font-semibold tracking-[0.1em] mt-0.5">Reliable · Rapid · Cost-Optimal</p>
             </div>
           </div>
 

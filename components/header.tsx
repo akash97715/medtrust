@@ -44,11 +44,14 @@ export function Header() {
     <header className="sticky top-0 z-20 bg-[#0c1220] border-b border-white/5 h-16 flex items-center px-4 md:px-8 shrink-0">
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {/* Mobile logo */}
-        <Link href="/" className="md:hidden flex items-center gap-2.5 mr-1">
-          <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-teal-500 shadow-sm shadow-teal-500/30">
+        <Link href="/" className="md:hidden flex items-center gap-2 mr-1">
+          <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-teal-500 shadow-sm shadow-teal-500/30 shrink-0">
             <span className="text-white font-black text-xs">M</span>
           </div>
-          <span className="font-bold text-[15px] text-white tracking-tight">MedTrust</span>
+          <div>
+            <p className="font-bold text-[14px] text-white tracking-tight leading-none">MedTrust</p>
+            <p className="text-[8px] text-white/30 font-semibold tracking-[0.06em] mt-0.5">Reliable · Rapid · Cost-Optimal</p>
+          </div>
         </Link>
 
         {/* Back button — prominent on mobile */}

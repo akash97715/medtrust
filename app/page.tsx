@@ -33,6 +33,7 @@ export default function LandingPage() {
           <div>
             <p className="font-black text-white text-[15px] tracking-tight leading-none">MedTrust</p>
             <p className="text-[9px] text-teal-400/70 font-bold tracking-[0.2em]">HEALTHCARE</p>
+            <p className="text-[8px] text-white/25 font-semibold tracking-[0.08em] mt-0.5">Reliable · Rapid · Cost-Optimal</p>
           </div>
         </div>
         <Link
@@ -53,7 +54,7 @@ export default function LandingPage() {
         </div>
 
         {/* Headline */}
-        <h1 className="text-4xl md:text-6xl font-black tracking-tighter leading-[1.05] text-white max-w-2xl mb-5">
+        <h1 className="text-4xl md:text-6xl font-black tracking-tighter leading-[1.05] text-white max-w-2xl mb-4">
           Surgical &amp; Medical{" "}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-300 to-teal-500">
             Supplies
@@ -61,10 +62,30 @@ export default function LandingPage() {
           <br />You Can Trust
         </h1>
 
+        {/* Tagline */}
+        <p className="text-[13px] md:text-sm font-bold tracking-[0.22em] uppercase text-white/35 mb-7">
+          Reliable &nbsp;·&nbsp; Rapid &nbsp;·&nbsp; Cost-Optimal
+        </p>
+
+        {/* Three pillars */}
+        <div className="flex items-stretch divide-x divide-white/10 bg-white/[0.04] border border-white/10 rounded-2xl backdrop-blur-md overflow-hidden mb-8">
+          {[
+            { icon: "🛡️", title: "Reliable", sub: "Certified sources, zero compromise" },
+            { icon: "⚡", title: "Rapid",    sub: "Swift delivery, pan-India" },
+            { icon: "💎", title: "Cost-Optimal", sub: "No middlemen, best-market rates" },
+          ].map(({ icon, title, sub }) => (
+            <div key={title} className="flex-1 flex flex-col items-center text-center px-4 py-4 md:px-6">
+              <span className="text-xl mb-1.5">{icon}</span>
+              <p className="text-white font-bold text-[13px] tracking-tight">{title}</p>
+              <p className="text-white/35 text-[10px] font-medium leading-snug mt-0.5 hidden sm:block">{sub}</p>
+            </div>
+          ))}
+        </div>
+
         {/* Subtext */}
-        <p className="text-white/55 text-base md:text-lg font-medium max-w-md mb-10 leading-relaxed">
-          Genuine certified products for hospitals, clinics and agencies —
-          at the <span className="text-white/80 font-semibold">lowest market rates</span>, delivered in 2 days.
+        <p className="text-white/50 text-sm md:text-base font-medium max-w-sm mb-10 leading-relaxed">
+          Genuine certified products for hospitals, clinics &amp; agencies —
+          at the <span className="text-white/75 font-semibold">lowest market rates</span>, delivered quickly.
         </p>
 
         {/* Primary CTA */}
@@ -81,7 +102,7 @@ export default function LandingPage() {
         <div className="flex items-center justify-center gap-6 mt-10 flex-wrap">
           {[
             { value: "20+", label: "Hospitals Served" },
-            { value: "2-Day", label: "Delivery" },
+            { value: "Swift", label: "Delivery" },
             { value: "₹0", label: "Hidden Charges" },
           ].map(({ value, label }) => (
             <div key={label} className="text-center">

@@ -120,6 +120,7 @@ export function Sidebar() {
         <div>
           <p className="font-bold text-white text-[15px] tracking-tight leading-none">MedTrust</p>
           <p className="text-[10px] text-teal-400/60 mt-0.5 font-semibold tracking-[0.18em]">HEALTHCARE</p>
+          <p className="text-[9px] text-white/20 mt-1 font-semibold tracking-[0.08em]">Reliable · Rapid · Cost-Optimal</p>
         </div>
       </Link>
 
@@ -273,7 +274,6 @@ export function MobileNav() {
       { href: "/products", label: "Products", icon: Package },
       { href: "/orders", label: "Orders", icon: ShoppingCart },
       { href: "/pricing", label: "Pricing", icon: DollarSign },
-      { href: "/catalog-admin", label: "Manage Catalog", icon: Store },
     ] : []),
   ];
 

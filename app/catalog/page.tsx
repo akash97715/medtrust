@@ -90,7 +90,7 @@ function ProductCard({ p }: { p: CatalogProduct }) {
         {/* Delivery */}
         <div className="flex items-center gap-1.5 text-[10px] text-emerald-700 bg-emerald-50 rounded-lg px-2.5 py-1.5 mb-3 w-fit">
           <Zap size={10} className="fill-emerald-600 text-emerald-600" />
-          <span className="font-semibold">Delivery within {p.delivery_days} days</span>
+          <span className="font-semibold">Swift delivery guaranteed</span>
         </div>
 
         <div className="h-8 flex items-center justify-center bg-teal-600 group-hover:bg-teal-700 text-white text-xs font-semibold rounded-lg transition-colors">
@@ -137,7 +137,7 @@ export default function CatalogPage() {
             </div>
             <h1 className="text-3xl font-black mb-2 tracking-tight">Product Catalog</h1>
             <p className="text-teal-200 text-sm">
-              {all.length} product{all.length !== 1 ? "s" : ""} · All deliveries within 2 days of order confirmation
+              {all.length} product{all.length !== 1 ? "s" : ""} · Reliable · Rapid · Cost-Optimal
             </p>
           </div>
           {isAdmin && (
