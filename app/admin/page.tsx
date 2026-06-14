@@ -14,6 +14,7 @@ const actions = [
     title: "Add Party",
     hindi: "पार्टी जोड़ें",
     desc: "Register a hospital, agency or clinic as a buyer in your area.",
+    adminOnly: true,
   },
   {
     href: "/admin/product",
@@ -23,6 +24,7 @@ const actions = [
     title: "Add Product",
     hindi: "उत्पाद जोड़ें",
     desc: "Add a surgical or medical item to the master product list.",
+    adminOnly: true,
   },
   {
     href: "/admin/visit",
@@ -42,12 +44,13 @@ const actions = [
     title: "Add Order",
     hindi: "ऑर्डर जोड़ें",
     desc: "Capture a confirmed order with quantity, buy rate and sell rate.",
+    adminOnly: true,
   },
 ];
 
 export default function AdminPage() {
   const router = useRouter();
-  const { tryUnlock } = useAuth();
+  const { tryUnlock, isAdmin } = useAuth();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -81,7 +84,7 @@ export default function AdminPage() {
       </div>
 
       <div className="flex flex-col gap-3">
-        {actions.map(({ href, icon: Icon, color, border, title, hindi, desc, public: isPublic }) => (
+        {actions.filter((a) => !a.adminOnly || isAdmin).map(({ href, icon: Icon, color, border, title, hindi, desc, public: isPublic }) => (
           <button
             key={href}
             onClick={() => isPublic ? router.push(href) : openDialog(href)}

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
 import { Search, ChevronRight } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 const TYPE_COLORS: Record<string, string> = {
   hospital: "bg-blue-100 text-blue-700",
@@ -19,6 +20,7 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export default function PartiesPage() {
+  const { isAdmin } = useAuth();
   const [tab, setTab] = useState("all");
   const [search, setSearch] = useState("");
   const { data, isLoading } = useQuery({
@@ -40,9 +42,11 @@ export default function PartiesPage() {
           <h1 className="text-2xl font-bold text-slate-800">Parties</h1>
           <p className="text-slate-500 text-sm mt-1">Hospitals, agencies, and other buyers</p>
         </div>
-        <Link href="/admin" className="text-sm bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors">
-          + Add party
-        </Link>
+        {isAdmin && (
+          <Link href="/admin" className="text-sm bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors">
+            + Add party
+          </Link>
+        )}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">

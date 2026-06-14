@@ -8,9 +8,9 @@ import { PinInput } from "@/components/pin-input";
 import { Lock } from "lucide-react";
 
 // Staff can access these (staff + admin)
-const STAFF_PREFIXES = ["/visits", "/visitors", "/admin", "/parties"];
+const STAFF_PREFIXES = ["/visits", "/visitors", "/admin", "/parties", "/catalog-admin"];
 // Admin only
-const OWNER_PREFIXES = ["/dashboard", "/products", "/orders", "/pricing", "/catalog-admin"];
+const OWNER_PREFIXES = ["/dashboard", "/products", "/orders", "/pricing"];
 
 function requiredRole(pathname: string): "staff" | "admin" | null {
   if (OWNER_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"))) return "admin";

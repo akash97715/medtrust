@@ -58,6 +58,7 @@ def run_migrations():
         "ALTER TABLE access_codes ADD COLUMN IF NOT EXISTS role VARCHAR(10) DEFAULT 'admin'",
         "UPDATE access_codes SET role = 'admin' WHERE role IS NULL OR role = 'owner'",
         "INSERT INTO access_codes (code, role) VALUES ('97715', 'admin') ON CONFLICT (code) DO UPDATE SET role = 'admin'",
+        "INSERT INTO access_codes (code, role) VALUES ('78787', 'staff') ON CONFLICT (code) DO UPDATE SET role = 'staff'",
         """
         CREATE TABLE IF NOT EXISTS catalog_products (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

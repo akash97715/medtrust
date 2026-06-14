@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 // Admin-only pages (require owner code)
-const ADMIN_HREFS = new Set(["/dashboard", "/parties", "/products", "/orders", "/pricing", "/catalog-admin"]);
+const ADMIN_HREFS = new Set(["/dashboard", "/parties", "/products", "/orders", "/pricing"]);
 
 function LockModal({ targetHref, onClose }: { targetHref: string; onClose: () => void }) {
   const { tryUnlock, isAdmin } = useAuth();
@@ -172,6 +172,7 @@ export function Sidebar() {
                 <NavLink href="/parties" label="Parties" icon={Users} />
                 <NavLink href="/visits" label="Visits" icon={CalendarCheck} />
                 <NavLink href="/visitors" label="Visitors" icon={UserCheck} />
+                <NavLink href="/catalog-admin" label="Manage Catalog" icon={Store} />
                 <Link
                   href="/admin"
                   className={cn(
@@ -204,21 +205,6 @@ export function Sidebar() {
               </div>
             </div>
 
-            {/* Catalog admin sub-link */}
-            <div className="mt-1">
-              <Link
-                href="/catalog-admin"
-                className={cn(
-                  "flex items-center gap-3 pl-9 pr-3 py-2 rounded-xl text-[12px] font-semibold transition-all duration-150",
-                  pathname.startsWith("/catalog-admin")
-                    ? "text-amber-300 bg-amber-500/10"
-                    : "text-white/50 hover:text-amber-300 hover:bg-amber-500/[0.08]"
-                )}
-              >
-                <ChevronRight size={12} className="shrink-0" />
-                Manage Catalog
-              </Link>
-            </div>
           </>
         )}
       </nav>
@@ -279,6 +265,7 @@ export function MobileNav() {
   const moreLinks = [
     ...(isStaff ? [
       { href: "/visitors", label: "Visitors", icon: UserCheck },
+      { href: "/catalog-admin", label: "Manage Catalog", icon: Store },
       { href: "/admin", label: "Add Data", icon: PlusCircle },
     ] : []),
     ...(isAdmin ? [
@@ -324,6 +311,15 @@ export function MobileNav() {
                 </button>
               );
             })}
+            {isStaff && !isAdmin && (
+              <button
+                onClick={() => { setShowMore(false); setLockModal("/dashboard"); }}
+                className="flex items-center gap-4 px-5 py-4 text-sm font-semibold border-t border-white/[0.06] w-full text-left text-teal-400/70 hover:text-teal-300 hover:bg-white/[0.03] transition-colors"
+              >
+                <Lock size={18} className="shrink-0" />
+                <span className="flex-1">Admin access</span>
+              </button>
+            )}
           </div>
         </div>
       )}

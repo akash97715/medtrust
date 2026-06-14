@@ -132,12 +132,14 @@ export default function PartyDetailPage({ params }: { params: Promise<{ id: stri
           <h1 className="text-2xl font-bold text-slate-800">{fmt(p?.party_name)}</h1>
           <p className="text-slate-500 text-sm mt-1 capitalize">{fmt(p?.party_type)} · {fmt(p?.city)}, {fmt(p?.district)}</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => openDialog("edit")}><Pencil size={14} className="mr-1.5" />Edit</Button>
-          <button onClick={() => openDialog("deactivate")} className="inline-flex items-center gap-1.5 text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-md px-3 py-1.5 transition-colors">
-            <Trash2 size={14} />Deactivate
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => openDialog("edit")}><Pencil size={14} className="mr-1.5" />Edit</Button>
+            <button onClick={() => openDialog("deactivate")} className="inline-flex items-center gap-1.5 text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-md px-3 py-1.5 transition-colors">
+              <Trash2 size={14} />Deactivate
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
