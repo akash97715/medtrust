@@ -6,7 +6,7 @@ import { Header } from "./header";
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  if (pathname === "/") {
+  if (pathname === "/" || pathname.startsWith("/invoices")) {
     return <>{children}</>;
   }
 

@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
-import { Search, Pencil } from "lucide-react";
+import { Search, Pencil, FileText } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   confirmed: "bg-green-100 text-green-700",
@@ -83,9 +83,14 @@ export default function OrdersPage() {
                       <td className="py-2 pr-4 text-right">{money(r.sell_rate as number)}</td>
                       <td className="py-2 pr-4 text-right font-medium text-teal-700">{money(r.line_value as number)}</td>
                       <td className="py-2">
-                        <Link href={`/orders/${r.order_id}/edit`} className="text-slate-400 hover:text-teal-600">
-                          <Pencil size={14} />
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          <Link href={`/invoices/${r.order_id}`} className="text-slate-400 hover:text-teal-600" title="Generate Invoice">
+                            <FileText size={14} />
+                          </Link>
+                          <Link href={`/orders/${r.order_id}/edit`} className="text-slate-400 hover:text-teal-600" title="Edit Order">
+                            <Pencil size={14} />
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))}
