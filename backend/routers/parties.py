@@ -69,7 +69,7 @@ def list_parties(type: Optional[str] = None):
             SELECT party_id, party_type, party_name, phone, contact_person,
                    city, district, state, distance_from_base_km, notes
             FROM dashboard_party_directory
-            WHERE party_type = %s
+            WHERE party_type = %s AND is_active = TRUE
             ORDER BY party_type, party_name
             """,
             (type,),
@@ -79,6 +79,7 @@ def list_parties(type: Optional[str] = None):
         SELECT party_id, party_type, party_name, phone, contact_person,
                city, district, state, distance_from_base_km, notes
         FROM dashboard_party_directory
+        WHERE is_active = TRUE
         ORDER BY party_type, party_name
         """
     )

@@ -53,7 +53,7 @@ export default function PartyDetailPage({ params }: { params: Promise<{ id: stri
     mutationFn: () => deleteParty(id),
     onSuccess: () => {
       toast.success("Party deactivated");
-      qc.invalidateQueries({ queryKey: ["parties"] });
+      qc.clear();
       router.push("/parties");
     },
     onError: (e: Error) => toast.error(e.message),

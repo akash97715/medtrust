@@ -24,6 +24,8 @@ export default function PartiesPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["parties", tab],
     queryFn: () => getParties(tab),
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const rows = (data as Record<string, unknown>[] ?? []).filter(
