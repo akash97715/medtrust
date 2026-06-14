@@ -172,12 +172,12 @@ export default function InvoicePage() {
                 <p className="text-white/30 text-[10px] font-bold uppercase tracking-[0.2em] mb-1">Tax Invoice</p>
                 <p className="no-print text-white font-black text-2xl tracking-tight">{invoiceNo(o?.order_id)}</p>
                 <p className="text-white/50 text-xs mt-1">Date: <span className="text-white/85">{fmtDate(o?.order_date)}</span></p>
-                {(o?.bill_period_from || o?.bill_period_to) && (
+                {(!!o?.bill_period_from || !!o?.bill_period_to) && (
                   <p className="no-print text-white/40 text-[11px] mt-0.5">
                     Period: {fmtDate(o?.bill_period_from)} – {fmtDate(o?.bill_period_to)}
                   </p>
                 )}
-                {o?.reference_number && (
+                {!!o?.reference_number && (
                   <p className="no-print text-white/35 text-[11px] mt-0.5">Ref: {String(o.reference_number)}</p>
                 )}
               </div>
@@ -200,7 +200,7 @@ export default function InvoicePage() {
             <div className="px-4 py-2">
               <p className="text-sm font-black text-slate-800">Name : {fmt(o?.party_name)}</p>
               {partyAddress && <p className="text-xs text-slate-600 mt-0.5">Address: {partyAddress}</p>}
-              {party?.contact_person && <p className="text-xs text-slate-600">Attn: {fmt(party.contact_person)}</p>}
+              {!!party?.contact_person && <p className="text-xs text-slate-600">Attn: {fmt(party.contact_person)}</p>}
               {(party as Record<string, unknown>)?.gst_number
                 ? <p className="text-xs text-slate-600 mt-0.5">GSTIN: {fmt((party as Record<string, unknown>).gst_number)}</p>
                 : <p className="text-xs text-slate-400 mt-0.5 italic">GSTIN: Not provided</p>
