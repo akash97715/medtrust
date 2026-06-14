@@ -1,5 +1,5 @@
 "use client";
-import { use } from "react";
+import { use, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getParty, deleteParty } from "@/lib/api";
 import { money, fmt } from "@/lib/utils";
@@ -8,15 +8,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel,
-  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
-  AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Lock } from "lucide-react";
+
+const MASTER_CODE = "97715";
 
 function DataTable({ rows, cols }: { rows: Record<string, unknown>[]; cols: { key: string; label: string; money?: boolean }[] }) {
   if (!rows.length) return <p className="text-slate-400 text-sm py-4">No records.</p>;
@@ -48,6 +46,21 @@ export default function PartyDetailPage({ params }: { params: Promise<{ id: stri
   const { id } = use(params);
   const router = useRouter();
   const qc = useQueryClient();
+  const [pendingAction, setPendingAction] = useState<"edit" | "deactivate" | null>(null);
+  const [code, setCode] = useState("");
+  const [codeError, setCodeError] = useState(false);
+
+  const openDialog = (action: "edit" | "deactivate") => { setPendingAction(action); setCode(""); setCodeError(false); };
+  const handleCodeSubmit = () => {
+    if (code === MASTER_CODE) {
+      setPendingAction(null);
+      if (pendingAction === "edit") router.push(`/parties/${id}/edit`);
+      if (pendingAction === "deactivate") deactivate.mutate();
+    } else {
+      setCodeError(true);
+    }
+  };
+
   const { data, isLoading } = useQuery({ queryKey: ["party", id], queryFn: () => getParty(id), staleTime: 0, refetchOnMount: "always" });
   const deactivate = useMutation({
     mutationFn: () => deleteParty(id),
@@ -73,24 +86,10 @@ export default function PartyDetailPage({ params }: { params: Promise<{ id: stri
           <p className="text-slate-500 text-sm mt-1 capitalize">{fmt(p?.party_type)} · {fmt(p?.city)}, {fmt(p?.district)}</p>
         </div>
         <div className="flex gap-2">
-          <Link href={`/parties/${id}/edit`}>
-            <Button variant="outline" size="sm"><Pencil size={14} className="mr-1.5" />Edit</Button>
-          </Link>
-          <AlertDialog>
-            <AlertDialogTrigger className="inline-flex items-center gap-1.5 text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-md px-3 py-1.5 transition-colors">
-              <Trash2 size={14} />Deactivate
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Deactivate party?</AlertDialogTitle>
-                <AlertDialogDescription>This hides the party from the directory. All visits, orders, and pricing history are preserved.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={() => deactivate.mutate()} className="bg-red-600 hover:bg-red-700">Deactivate</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <Button variant="outline" size="sm" onClick={() => openDialog("edit")}><Pencil size={14} className="mr-1.5" />Edit</Button>
+          <button onClick={() => openDialog("deactivate")} className="inline-flex items-center gap-1.5 text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-md px-3 py-1.5 transition-colors">
+            <Trash2 size={14} />Deactivate
+          </button>
         </div>
       </div>
 
@@ -180,6 +179,28 @@ export default function PartyDetailPage({ params }: { params: Promise<{ id: stri
           </CardContent></Card>
         </TabsContent>
       </Tabs>
+
+      {pendingAction && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
+            <div className="flex items-center gap-2 mb-1">
+              <Lock size={16} className="text-slate-500" />
+              <h2 className="font-semibold text-slate-800">Employee Code Required</h2>
+            </div>
+            <p className="text-sm text-slate-500 mb-4">Enter your employee code to continue.</p>
+            <Input type="password" placeholder="Enter code…" value={code} autoFocus
+              onChange={(e) => { setCode(e.target.value); setCodeError(false); }}
+              onKeyDown={(e) => e.key === "Enter" && handleCodeSubmit()} />
+            {codeError && <p className="text-xs text-red-500 mt-1.5">Invalid employee code. Please try again.</p>}
+            <div className="flex gap-2 mt-4">
+              <Button onClick={handleCodeSubmit} className={`flex-1 ${pendingAction === "deactivate" ? "bg-red-600 hover:bg-red-700" : "bg-teal-600 hover:bg-teal-700"}`}>
+                {pendingAction === "deactivate" ? "Deactivate" : "Continue"}
+              </Button>
+              <Button variant="outline" onClick={() => setPendingAction(null)}>Cancel</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
