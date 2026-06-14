@@ -20,6 +20,11 @@ class OrderCreate(BaseModel):
     unit_of_measure: str = "piece"
     buy_rate: Optional[float] = None
     sell_rate: Optional[float] = None
+    # Invoice fields
+    bill_period_from: Optional[str] = None
+    bill_period_to: Optional[str] = None
+    hsn_code: Optional[str] = None
+    discount: Optional[float] = 0
 
 
 class OrderUpdate(BaseModel):
@@ -27,6 +32,8 @@ class OrderUpdate(BaseModel):
     order_status: Optional[str] = None
     reference_number: Optional[str] = None
     notes: Optional[str] = None
+    bill_period_from: Optional[str] = None
+    bill_period_to: Optional[str] = None
 
 
 class OrderItemUpdate(BaseModel):
@@ -35,6 +42,8 @@ class OrderItemUpdate(BaseModel):
     buy_rate: Optional[float] = None
     sell_rate: Optional[float] = None
     notes: Optional[str] = None
+    hsn_code: Optional[str] = None
+    discount: Optional[float] = None
 
 
 @router.get("")
@@ -69,6 +78,7 @@ def get_order(order_id: str):
     orders = query(
         """
         SELECT so.id, so.order_date, so.order_status, so.reference_number, so.notes,
+               so.bill_period_from, so.bill_period_to,
                p.id AS party_id, p.name AS party_name
         FROM sales_orders so JOIN parties p ON p.id = so.party_id
         WHERE so.id = %s
@@ -81,7 +91,8 @@ def get_order(order_id: str):
     items = query(
         """
         SELECT soi.id, pr.id AS product_id, pr.product_name, soi.quantity, soi.unit_of_measure,
-               soi.buy_rate, soi.sell_rate,
+               soi.buy_rate, soi.sell_rate, soi.hsn_code,
+               COALESCE(soi.discount, 0) AS discount,
                (soi.quantity * COALESCE(soi.sell_rate, 0)) AS line_value, soi.notes
         FROM sales_order_items soi
         JOIN products pr ON pr.id = soi.product_id
@@ -101,20 +112,21 @@ def create_order(body: OrderCreate):
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
                 """
-                INSERT INTO sales_orders (party_id, order_date, order_status, reference_number, notes)
-                VALUES (%s, %s, %s, %s, %s) RETURNING id, party_id
+                INSERT INTO sales_orders (party_id, order_date, order_status, reference_number, notes, bill_period_from, bill_period_to)
+                VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id, party_id
                 """,
                 (body.party_id, body.order_date, body.order_status,
-                 body.reference_number or None, body.notes or None),
+                 body.reference_number or None, body.notes or None,
+                 body.bill_period_from or None, body.bill_period_to or None),
             )
             order = dict(cur.fetchone())
             cur.execute(
                 """
-                INSERT INTO sales_order_items (sales_order_id, product_id, quantity, unit_of_measure, buy_rate, sell_rate)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO sales_order_items (sales_order_id, product_id, quantity, unit_of_measure, buy_rate, sell_rate, hsn_code, discount)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (order["id"], body.product_id, body.quantity, body.unit_of_measure,
-                 body.buy_rate, body.sell_rate),
+                 body.buy_rate, body.sell_rate, body.hsn_code or None, body.discount or 0),
             )
             cur.execute(
                 """
@@ -135,7 +147,8 @@ def update_order(order_id: str, body: OrderUpdate):
     execute(
         """
         UPDATE sales_orders
-        SET order_date = %s, order_status = %s, reference_number = %s, notes = %s, updated_at = NOW()
+        SET order_date = %s, order_status = %s, reference_number = %s, notes = %s,
+            bill_period_from = %s, bill_period_to = %s, updated_at = NOW()
         WHERE id = %s
         """,
         (
@@ -143,6 +156,8 @@ def update_order(order_id: str, body: OrderUpdate):
             body.order_status or e["order_status"],
             body.reference_number if body.reference_number is not None else e["reference_number"],
             body.notes if body.notes is not None else e["notes"],
+            body.bill_period_from if body.bill_period_from is not None else e.get("bill_period_from"),
+            body.bill_period_to if body.bill_period_to is not None else e.get("bill_period_to"),
             order_id,
         ),
     )
@@ -175,7 +190,8 @@ def update_order_item(item_id: str, body: OrderItemUpdate):
             cur.execute(
                 """
                 UPDATE sales_order_items
-                SET quantity = %s, unit_of_measure = %s, buy_rate = %s, sell_rate = %s, notes = %s
+                SET quantity = %s, unit_of_measure = %s, buy_rate = %s, sell_rate = %s, notes = %s,
+                    hsn_code = %s, discount = %s
                 WHERE id = %s
                 RETURNING product_id
                 """,
@@ -185,6 +201,8 @@ def update_order_item(item_id: str, body: OrderItemUpdate):
                     buy_rate,
                     sell_rate,
                     body.notes if body.notes is not None else e["notes"],
+                    body.hsn_code if body.hsn_code is not None else e.get("hsn_code"),
+                    body.discount if body.discount is not None else float(e.get("discount") or 0),
                     item_id,
                 ),
             )

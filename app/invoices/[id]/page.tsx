@@ -97,9 +97,9 @@ export default function InvoicePage() {
   });
   const party = partyData as Record<string, unknown> | undefined;
 
-  // Calculations
+  // Calculations — discount now comes from each order item
   const subtotal    = items.reduce((s, it) => s + n(it.quantity) * n(it.sell_rate), 0);
-  const discount    = 0; // update if discount logic added
+  const discount    = items.reduce((s, it) => s + n(it.discount), 0);
   const taxable     = subtotal - discount;
   const cgst        = taxable * (GST_RATE / 2);
   const sgst        = taxable * (GST_RATE / 2);
@@ -155,7 +155,9 @@ export default function InvoicePage() {
             <div className="px-4 py-2 border-r border-slate-300 space-y-0.5">
               <p className="text-xs"><span className="font-bold">Invoice No :</span> {invoiceNo(o?.order_id)}</p>
               <p className="text-xs"><span className="font-bold">Invoice date :</span> {fmtDate(o?.order_date)}</p>
-              <p className="text-xs"><span className="font-bold">Bill Period :</span> {fmtDate(o?.order_date)} TO {fmtDate(o?.order_date)}</p>
+              {(o?.bill_period_from || o?.bill_period_to) && (
+                <p className="text-xs"><span className="font-bold">Bill Period :</span> {fmtDate(o?.bill_period_from)} TO {fmtDate(o?.bill_period_to)}</p>
+              )}
             </div>
             <div className="px-4 py-2 space-y-0.5">
               <p className="text-[11px] text-slate-500">GSTIN: <span className="font-bold text-slate-700">{CO.gst}</span></p>
@@ -200,7 +202,7 @@ export default function InvoicePage() {
                   const qty    = n(item.quantity);
                   const rate   = n(item.sell_rate);
                   const amount = qty * rate;
-                  const disc   = 0;
+                  const disc   = n(item.discount);
                   const taxVal = amount - disc;
                   return (
                     <tr key={i}>

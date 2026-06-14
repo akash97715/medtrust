@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from routers import dashboard, parties, products, visits, orders, pricing
+from database import execute
 
 app = FastAPI(title="MedTrust Healthcare API", version="2.0.0")
 
@@ -28,6 +29,19 @@ app.include_router(products.router, prefix="/api/products", tags=["products"])
 app.include_router(visits.router, prefix="/api/visits", tags=["visits"])
 app.include_router(orders.router, prefix="/api/orders", tags=["orders"])
 app.include_router(pricing.router, prefix="/api/pricing", tags=["pricing"])
+
+
+@app.on_event("startup")
+def run_migrations():
+    """Add new invoice-related columns if they don't exist yet."""
+    migrations = [
+        "ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS bill_period_from DATE",
+        "ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS bill_period_to DATE",
+        "ALTER TABLE sales_order_items ADD COLUMN IF NOT EXISTS hsn_code VARCHAR(20)",
+        "ALTER TABLE sales_order_items ADD COLUMN IF NOT EXISTS discount NUMERIC(12,2) DEFAULT 0",
+    ]
+    for sql in migrations:
+        execute(sql)
 
 
 @app.get("/api/health")
