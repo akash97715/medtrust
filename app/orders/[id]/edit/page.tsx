@@ -147,6 +147,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
                         <SelectItem value="draft">Draft</SelectItem>
                         <SelectItem value="confirmed">Confirmed</SelectItem>
                         <SelectItem value="delivered">Delivered</SelectItem>
+                        <SelectItem value="payment_received">Payment Received</SelectItem>
                         <SelectItem value="cancelled">Cancelled</SelectItem>
                       </SelectContent>
                     </Select>

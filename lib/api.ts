@@ -26,8 +26,13 @@ async function req<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
+// Auth
+export const verifyCode = (code: string) =>
+  req<{ valid: boolean }>("/api/auth/verify", { method: "POST", body: JSON.stringify({ code }) });
+
 // Dashboard
 export const getDashboardSummary = () => req("/api/dashboard/summary");
+export const getDashboardProfit = () => req("/api/dashboard/profit");
 export const getTopProducts = () => req("/api/dashboard/top-products");
 export const getProductLeaders = () => req("/api/dashboard/product-leaders");
 export const getDailyActivity = () => req("/api/dashboard/daily-activity");

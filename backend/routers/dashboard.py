@@ -69,6 +69,28 @@ def get_daily_activity():
     )
 
 
+@router.get("/profit")
+def get_profit():
+    from database import scalar
+    profit = scalar(
+        """
+        SELECT COALESCE(SUM(soi.quantity * (COALESCE(soi.sell_rate, 0) - COALESCE(soi.buy_rate, 0))), 0)
+        FROM sales_order_items soi
+        JOIN sales_orders so ON so.id = soi.sales_order_id
+        JOIN parties p ON p.id = so.party_id AND p.is_active = TRUE
+        WHERE so.order_status = 'payment_received'
+        """
+    )
+    order_count = scalar(
+        """
+        SELECT COUNT(*) FROM sales_orders so
+        JOIN parties p ON p.id = so.party_id AND p.is_active = TRUE
+        WHERE so.order_status = 'payment_received'
+        """
+    )
+    return {"total_profit": float(profit or 0), "order_count": int(order_count or 0)}
+
+
 @router.get("/locations")
 def get_locations():
     return query(

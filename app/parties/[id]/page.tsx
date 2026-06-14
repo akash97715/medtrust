@@ -3,18 +3,16 @@ import { use, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getParty, deleteParty } from "@/lib/api";
 import { money, fmt } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ArrowLeft, Pencil, Trash2, Lock } from "lucide-react";
-
-const MASTER_CODE = "97715";
+import { useAuth } from "@/lib/auth-context";
+import { PinInput } from "@/components/pin-input";
 
 function DataTable({ rows, cols }: { rows: Record<string, unknown>[]; cols: { key: string; label: string; money?: boolean }[] }) {
   if (!rows.length) return <p className="text-slate-400 text-sm py-4">No records.</p>;
@@ -42,22 +40,71 @@ function DataTable({ rows, cols }: { rows: Record<string, unknown>[]; cols: { ke
   );
 }
 
+function InlineUnlock({ label }: { label: string }) {
+  const { tryUnlock } = useAuth();
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [resetPin, setResetPin] = useState(0);
+
+  const handleComplete = async (pin: string) => {
+    setLoading(true);
+    setError(false);
+    const ok = await tryUnlock(pin);
+    setLoading(false);
+    if (!ok) {
+      setError(true);
+      setResetPin((v) => v + 1);
+    }
+  };
+
+  return (
+    <Card>
+      <CardContent className="pt-8 pb-10">
+        <div className="max-w-xs mx-auto text-center">
+          <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-slate-100 mx-auto mb-4">
+            <Lock size={20} className="text-slate-400" />
+          </div>
+          <p className="font-semibold text-slate-700 mb-1">Restricted — {label}</p>
+          <p className="text-xs text-slate-400 mb-6 leading-relaxed">
+            Enter your 5-digit employee code to unlock this section and all restricted content for this session.
+          </p>
+          <PinInput onComplete={handleComplete} loading={loading} reset={resetPin} />
+          {loading && <p className="text-xs text-slate-400 mt-3">Verifying…</p>}
+          {error && <p className="text-xs text-red-500 font-medium mt-3">Incorrect code. Try again.</p>}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function PartyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const qc = useQueryClient();
+  const { isUnlocked, tryUnlock } = useAuth();
   const [pendingAction, setPendingAction] = useState<"edit" | "deactivate" | null>(null);
-  const [code, setCode] = useState("");
   const [codeError, setCodeError] = useState(false);
+  const [codeLoading, setCodeLoading] = useState(false);
+  const [resetPin, setResetPin] = useState(0);
 
-  const openDialog = (action: "edit" | "deactivate") => { setPendingAction(action); setCode(""); setCodeError(false); };
-  const handleCodeSubmit = () => {
-    if (code === MASTER_CODE) {
+  const openDialog = (action: "edit" | "deactivate") => {
+    setPendingAction(action);
+    setCodeError(false);
+    setResetPin((v) => v + 1);
+  };
+
+  const handleCodeComplete = async (pin: string) => {
+    setCodeLoading(true);
+    setCodeError(false);
+    const ok = await tryUnlock(pin);
+    setCodeLoading(false);
+    if (ok) {
       setPendingAction(null);
       if (pendingAction === "edit") router.push(`/parties/${id}/edit`);
       if (pendingAction === "deactivate") deactivate.mutate();
     } else {
       setCodeError(true);
+      setResetPin((v) => v + 1);
     }
   };
 
@@ -116,9 +163,15 @@ export default function PartyDetailPage({ params }: { params: Promise<{ id: stri
       <Tabs defaultValue="visits">
         <TabsList>
           <TabsTrigger value="visits">Visits</TabsTrigger>
-          <TabsTrigger value="requested">Requested Items</TabsTrigger>
-          <TabsTrigger value="orders">Orders</TabsTrigger>
-          <TabsTrigger value="pricing">Pricing</TabsTrigger>
+          <TabsTrigger value="requested" className="flex items-center gap-1.5">
+            Requested Items {!isUnlocked && <Lock size={10} className="text-slate-400" />}
+          </TabsTrigger>
+          <TabsTrigger value="orders" className="flex items-center gap-1.5">
+            Orders {!isUnlocked && <Lock size={10} className="text-slate-400" />}
+          </TabsTrigger>
+          <TabsTrigger value="pricing" className="flex items-center gap-1.5">
+            Pricing {!isUnlocked && <Lock size={10} className="text-slate-400" />}
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="visits" className="mt-4">
           <Card><CardContent className="pt-4">
@@ -127,77 +180,77 @@ export default function PartyDetailPage({ params }: { params: Promise<{ id: stri
               cols={[
                 { key: "visit_date", label: "Date" },
                 { key: "visit_purpose", label: "Purpose" },
-                { key: "visit_status", label: "Status" },
-                { key: "location_snapshot", label: "Location" },
                 { key: "notes", label: "Notes" },
               ]}
             />
           </CardContent></Card>
         </TabsContent>
         <TabsContent value="requested" className="mt-4">
-          <Card><CardContent className="pt-4">
-            <DataTable
-              rows={(p?.requested_items as Record<string, unknown>[] ?? [])}
-              cols={[
-                { key: "visit_date", label: "Visit Date" },
-                { key: "product_name", label: "Product" },
-                { key: "requirement_type", label: "Type" },
-                { key: "quantity_estimate", label: "Qty Est." },
-                { key: "unit_of_measure", label: "Unit" },
-                { key: "brand_preference", label: "Brand" },
-              ]}
-            />
-          </CardContent></Card>
+          {isUnlocked ? (
+            <Card><CardContent className="pt-4">
+              <DataTable
+                rows={(p?.requested_items as Record<string, unknown>[] ?? [])}
+                cols={[
+                  { key: "visit_date", label: "Visit Date" },
+                  { key: "product_name", label: "Product" },
+                  { key: "requirement_type", label: "Type" },
+                  { key: "quantity_estimate", label: "Qty Est." },
+                  { key: "unit_of_measure", label: "Unit" },
+                  { key: "brand_preference", label: "Brand" },
+                ]}
+              />
+            </CardContent></Card>
+          ) : <InlineUnlock label="Requested Items" />}
         </TabsContent>
         <TabsContent value="orders" className="mt-4">
-          <Card><CardContent className="pt-4">
-            <DataTable
-              rows={(p?.orders as Record<string, unknown>[] ?? [])}
-              cols={[
-                { key: "order_date", label: "Date" },
-                { key: "order_status", label: "Status" },
-                { key: "product_name", label: "Product" },
-                { key: "quantity", label: "Qty" },
-                { key: "buy_rate", label: "Buy Rate", money: true },
-                { key: "sell_rate", label: "Sell Rate", money: true },
-              ]}
-            />
-          </CardContent></Card>
+          {isUnlocked ? (
+            <Card><CardContent className="pt-4">
+              <DataTable
+                rows={(p?.orders as Record<string, unknown>[] ?? [])}
+                cols={[
+                  { key: "order_date", label: "Date" },
+                  { key: "order_status", label: "Status" },
+                  { key: "product_name", label: "Product" },
+                  { key: "quantity", label: "Qty" },
+                  { key: "buy_rate", label: "Buy Rate", money: true },
+                  { key: "sell_rate", label: "Sell Rate", money: true },
+                ]}
+              />
+            </CardContent></Card>
+          ) : <InlineUnlock label="Orders" />}
         </TabsContent>
         <TabsContent value="pricing" className="mt-4">
-          <Card><CardContent className="pt-4">
-            <DataTable
-              rows={(p?.pricing as Record<string, unknown>[] ?? [])}
-              cols={[
-                { key: "product_name", label: "Product" },
-                { key: "buy_rate", label: "Buy Rate", money: true },
-                { key: "sell_rate", label: "Sell Rate", money: true },
-                { key: "currency_code", label: "Currency" },
-                { key: "effective_from", label: "From" },
-              ]}
-            />
-          </CardContent></Card>
+          {isUnlocked ? (
+            <Card><CardContent className="pt-4">
+              <DataTable
+                rows={(p?.pricing as Record<string, unknown>[] ?? [])}
+                cols={[
+                  { key: "product_name", label: "Product" },
+                  { key: "buy_rate", label: "Buy Rate", money: true },
+                  { key: "sell_rate", label: "Sell Rate", money: true },
+                  { key: "currency_code", label: "Currency" },
+                  { key: "effective_from", label: "From" },
+                ]}
+              />
+            </CardContent></Card>
+          ) : <InlineUnlock label="Pricing" />}
         </TabsContent>
       </Tabs>
 
       {pendingAction && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
-            <div className="flex items-center gap-2 mb-1">
-              <Lock size={16} className="text-slate-500" />
-              <h2 className="font-semibold text-slate-800">Employee Code Required</h2>
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl text-center">
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-slate-100 mx-auto mb-3">
+              <Lock size={18} className="text-slate-400" />
             </div>
-            <p className="text-sm text-slate-500 mb-4">Enter your employee code to continue.</p>
-            <Input type="password" placeholder="Enter code…" value={code} autoFocus
-              onChange={(e) => { setCode(e.target.value); setCodeError(false); }}
-              onKeyDown={(e) => e.key === "Enter" && handleCodeSubmit()} />
-            {codeError && <p className="text-xs text-red-500 mt-1.5">Invalid employee code. Please try again.</p>}
-            <div className="flex gap-2 mt-4">
-              <Button onClick={handleCodeSubmit} className={`flex-1 ${pendingAction === "deactivate" ? "bg-red-600 hover:bg-red-700" : "bg-teal-600 hover:bg-teal-700"}`}>
-                {pendingAction === "deactivate" ? "Deactivate" : "Continue"}
-              </Button>
-              <Button variant="outline" onClick={() => setPendingAction(null)}>Cancel</Button>
-            </div>
+            <h2 className="font-semibold text-slate-800 mb-1">Employee Code Required</h2>
+            <p className="text-xs text-slate-400 mb-5">Enter your 5-digit employee code to continue.</p>
+            <PinInput onComplete={handleCodeComplete} loading={codeLoading} reset={resetPin} />
+            {codeLoading && <p className="text-xs text-slate-400 mt-3">Verifying…</p>}
+            {codeError && <p className="text-xs text-red-500 mt-3 font-medium">Incorrect code. Please try again.</p>}
+            <button onClick={() => setPendingAction(null)} className="mt-4 text-sm text-slate-400 hover:text-slate-600 transition-colors">
+              Cancel
+            </button>
           </div>
         </div>
       )}

@@ -1,11 +1,9 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
+import { PinInput } from "@/components/pin-input";
 import { Users, Package, CalendarCheck, ShoppingCart, ChevronRight, Lock } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-
-const MASTER_CODE = "97715";
 
 const actions = [
   {
@@ -49,22 +47,29 @@ const actions = [
 
 export default function AdminPage() {
   const router = useRouter();
+  const { tryUnlock } = useAuth();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
-  const [code, setCode] = useState("");
   const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [resetPin, setResetPin] = useState(0);
 
   const openDialog = (href: string) => {
     setPendingHref(href);
-    setCode("");
     setError(false);
+    setResetPin((v) => v + 1);
   };
 
-  const handleSubmit = () => {
-    if (code === MASTER_CODE) {
+  const handleComplete = async (pin: string) => {
+    setLoading(true);
+    setError(false);
+    const ok = await tryUnlock(pin);
+    setLoading(false);
+    if (ok) {
       router.push(pendingHref!);
       setPendingHref(null);
     } else {
       setError(true);
+      setResetPin((v) => v + 1);
     }
   };
 
@@ -99,25 +104,18 @@ export default function AdminPage() {
 
       {pendingHref && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
-            <div className="flex items-center gap-2 mb-1">
-              <Lock size={16} className="text-slate-500" />
-              <h2 className="font-semibold text-slate-800">Employee Code Required</h2>
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl text-center">
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-slate-100 mx-auto mb-3">
+              <Lock size={18} className="text-slate-400" />
             </div>
-            <p className="text-sm text-slate-500 mb-4">Enter your employee code to continue.</p>
-            <Input
-              type="password"
-              placeholder="Enter code…"
-              value={code}
-              autoFocus
-              onChange={(e) => { setCode(e.target.value); setError(false); }}
-              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-            />
-            {error && <p className="text-xs text-red-500 mt-1.5">Invalid employee code. Please try again.</p>}
-            <div className="flex gap-2 mt-4">
-              <Button onClick={handleSubmit} className="flex-1 bg-teal-600 hover:bg-teal-700">Continue</Button>
-              <Button variant="outline" onClick={() => setPendingHref(null)}>Cancel</Button>
-            </div>
+            <h2 className="font-semibold text-slate-800 mb-1">Employee Code Required</h2>
+            <p className="text-xs text-slate-400 mb-5">Enter your 5-digit employee code to continue.</p>
+            <PinInput onComplete={handleComplete} loading={loading} reset={resetPin} />
+            {loading && <p className="text-xs text-slate-400 mt-3">Verifying…</p>}
+            {error && <p className="text-xs text-red-500 mt-3 font-medium">Incorrect code. Please try again.</p>}
+            <button onClick={() => setPendingHref(null)} className="mt-4 text-sm text-slate-400 hover:text-slate-600 transition-colors">
+              Cancel
+            </button>
           </div>
         </div>
       )}

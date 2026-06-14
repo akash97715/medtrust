@@ -1,12 +1,16 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth-context";
+import { PinInput } from "@/components/pin-input";
 import {
   LayoutDashboard, Users, Package, CalendarCheck, ShoppingCart,
-  DollarSign, PlusCircle, MoreHorizontal, X, Building2,
+  DollarSign, PlusCircle, MoreHorizontal, X, Building2, Lock,
 } from "lucide-react";
+
+const LOCKED_HREFS = new Set(["/dashboard", "/products", "/orders", "/pricing"]);
 
 const mainLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -17,8 +21,77 @@ const mainLinks = [
   { href: "/pricing", label: "Pricing", icon: DollarSign },
 ];
 
+function LockModal({ targetHref, onClose }: { targetHref: string; onClose: () => void }) {
+  const { tryUnlock } = useAuth();
+  const router = useRouter();
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [resetPin, setResetPin] = useState(0);
+
+  const handleComplete = async (pin: string) => {
+    setLoading(true);
+    setError(false);
+    const ok = await tryUnlock(pin);
+    setLoading(false);
+    if (ok) {
+      onClose();
+      router.push(targetHref);
+    } else {
+      setError(true);
+      setResetPin((v) => v + 1);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center"
+      onClick={onClose}
+    >
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+      <div
+        className="relative w-full max-w-xs mx-4 bg-[#0c1220] border border-white/10 rounded-2xl shadow-2xl shadow-black/60 p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-white/30 hover:text-white/70 transition-colors"
+        >
+          <X size={15} />
+        </button>
+
+        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-teal-500/15 border border-teal-500/30 mb-4">
+          <Lock size={18} className="text-teal-400" />
+        </div>
+
+        <h2 className="text-white font-semibold text-[15px] mb-1">Access Restricted</h2>
+        <p className="text-white/40 text-xs mb-5 leading-relaxed">
+          Enter your 5-digit employee code to unlock{" "}
+          <span className="text-white/60 font-medium capitalize">{targetHref.slice(1)}</span>{" "}
+          and all restricted sections for this session.
+        </p>
+
+        <PinInput dark onComplete={handleComplete} loading={loading} reset={resetPin} />
+
+        {loading && <p className="text-white/40 text-xs mt-3 text-center">Verifying…</p>}
+        {error && <p className="text-red-400 text-xs mt-3 text-center font-medium">Incorrect code. Please try again.</p>}
+
+        <button
+          onClick={onClose}
+          className="w-full mt-4 text-sm text-white/30 hover:text-white/60 transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function Sidebar() {
   const pathname = usePathname();
+  const { isUnlocked } = useAuth();
+  const [lockModal, setLockModal] = useState<string | null>(null);
+
   return (
     <aside className="hidden md:flex flex-col w-60 min-h-screen fixed top-0 left-0 z-30 bg-[#0c1220]">
       {/* Logo */}
@@ -39,6 +112,27 @@ export function Sidebar() {
         </p>
         {mainLinks.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
+          const locked = LOCKED_HREFS.has(href) && !isUnlocked;
+
+          if (locked) {
+            return (
+              <button
+                key={href}
+                onClick={() => setLockModal(href)}
+                className={cn(
+                  "relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-150 w-full text-left",
+                  active
+                    ? "bg-white/8 text-white/50"
+                    : "text-white/25 hover:bg-white/5 hover:text-white/40"
+                )}
+              >
+                <Icon size={15} />
+                <span className="flex-1">{label}</span>
+                <Lock size={10} className="text-white/20" />
+              </button>
+            );
+          }
+
           return (
             <Link
               key={href}
@@ -92,13 +186,18 @@ export function Sidebar() {
         <p className="text-[11px] text-white/25 font-medium">MedTrust Healthcare</p>
         <p className="text-[10px] text-white/15 mt-0.5">Operations v2.0</p>
       </div>
+
+      {lockModal && <LockModal targetHref={lockModal} onClose={() => setLockModal(null)} />}
     </aside>
   );
 }
 
 export function MobileNav() {
   const pathname = usePathname();
+  const { isUnlocked } = useAuth();
+  const router = useRouter();
   const [showMore, setShowMore] = useState(false);
+  const [lockModal, setLockModal] = useState<string | null>(null);
 
   const primaryLinks = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -118,6 +217,15 @@ export function MobileNav() {
     ({ href }) => pathname === href || pathname.startsWith(href)
   );
 
+  const handleMoreLinkClick = (href: string) => {
+    setShowMore(false);
+    if (LOCKED_HREFS.has(href) && !isUnlocked) {
+      setLockModal(href);
+    } else {
+      router.push(href);
+    }
+  };
+
   return (
     <>
       {/* More menu overlay */}
@@ -132,19 +240,20 @@ export function MobileNav() {
           >
             {moreLinks.map(({ href, label, icon: Icon }) => {
               const active = pathname === href || pathname.startsWith(href + "/");
+              const locked = LOCKED_HREFS.has(href) && !isUnlocked;
               return (
-                <Link
+                <button
                   key={href}
-                  href={href}
-                  onClick={() => setShowMore(false)}
+                  onClick={() => handleMoreLinkClick(href)}
                   className={cn(
-                    "flex items-center gap-4 px-5 py-4 text-sm font-medium border-b border-white/5 last:border-0 transition-colors",
-                    active ? "text-teal-400 bg-white/5" : "text-white/60 hover:text-white hover:bg-white/5"
+                    "flex items-center gap-4 px-5 py-4 text-sm font-medium border-b border-white/5 last:border-0 transition-colors w-full text-left",
+                    active ? "text-teal-400 bg-white/5" : locked ? "text-white/30" : "text-white/60 hover:text-white hover:bg-white/5"
                   )}
                 >
                   <Icon size={18} />
-                  {label}
-                </Link>
+                  <span className="flex-1">{label}</span>
+                  {locked && <Lock size={11} className="text-white/20" />}
+                </button>
               );
             })}
           </div>
@@ -155,6 +264,24 @@ export function MobileNav() {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0c1220] border-t border-white/5 flex justify-around px-2 py-2">
         {primaryLinks.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
+          const locked = LOCKED_HREFS.has(href) && !isUnlocked;
+
+          if (locked) {
+            return (
+              <button
+                key={href}
+                onClick={() => setLockModal(href)}
+                className={cn(
+                  "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-medium transition-all",
+                  "text-white/20"
+                )}
+              >
+                <Icon size={18} />
+                {label}
+              </button>
+            );
+          }
+
           return (
             <Link
               key={href}
@@ -182,6 +309,8 @@ export function MobileNav() {
           More
         </button>
       </nav>
+
+      {lockModal && <LockModal targetHref={lockModal} onClose={() => setLockModal(null)} />}
     </>
   );
 }

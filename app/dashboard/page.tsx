@@ -1,6 +1,7 @@
 "use client";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getDashboardSummary, getTopProducts, getDailyActivity, getProductLeaders } from "@/lib/api";
+import { getDashboardSummary, getDashboardProfit, getTopProducts, getDailyActivity, getProductLeaders } from "@/lib/api";
 import { money, fmt } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -8,8 +9,83 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, CartesianGrid,
 } from "recharts";
-import { Users, Package, CalendarCheck, ShoppingCart, Building2, Briefcase, TrendingUp, ArrowUpRight } from "lucide-react";
+import { Users, Package, CalendarCheck, ShoppingCart, Building2, Briefcase, TrendingUp, ArrowUpRight, Lock, IndianRupee } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/lib/auth-context";
+import { PinInput } from "@/components/pin-input";
+
+function ProfitCard({ isLoading }: { isLoading: boolean }) {
+  const { data } = useQuery({ queryKey: ["profit"], queryFn: getDashboardProfit, enabled: true });
+  const p = data as { total_profit: number; order_count: number } | undefined;
+  const { tryUnlock } = useAuth();
+
+  const [entering, setEntering] = useState(false);
+  const [unlocked, setUnlocked] = useState(false);
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [resetPin, setResetPin] = useState(0);
+
+  const handleComplete = async (pin: string) => {
+    setLoading(true);
+    setError(false);
+    const ok = await tryUnlock(pin);
+    setLoading(false);
+    if (ok) { setUnlocked(true); setEntering(false); }
+    else { setError(true); setResetPin((v) => v + 1); }
+  };
+
+  return (
+    <div className="relative rounded-xl overflow-hidden shadow-lg bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 text-white p-5 min-h-[110px] flex flex-col justify-between">
+      {/* decorative circles */}
+      <div className="absolute -top-6 -right-6 w-28 h-28 bg-white/10 rounded-full" />
+      <div className="absolute -bottom-4 -left-4 w-20 h-20 bg-white/10 rounded-full" />
+
+      <div className="relative z-10">
+        <div className="flex items-center gap-1.5 mb-1">
+          <IndianRupee size={12} className="text-emerald-100" />
+          <p className="text-xs font-bold uppercase tracking-widest text-emerald-100">Total Profit</p>
+        </div>
+        <p className="text-[10px] text-emerald-200 mb-3">Payment received orders only</p>
+
+        {isLoading ? (
+          <div className="h-8 w-32 bg-white/20 rounded animate-pulse" />
+        ) : unlocked ? (
+          <div>
+            <div className="flex items-end gap-2">
+              <p className="text-3xl font-black tracking-tight">{money(p?.total_profit ?? 0)}</p>
+              <button onClick={() => { setUnlocked(false); setEntering(false); }} className="mb-1 text-emerald-200 hover:text-white transition-colors">
+                <Lock size={14} />
+              </button>
+            </div>
+            <p className="text-xs text-emerald-200 mt-1">across {p?.order_count ?? 0} payment received order{(p?.order_count ?? 0) !== 1 ? "s" : ""}</p>
+          </div>
+        ) : entering ? (
+          <div className="space-y-3">
+            <PinInput dark onComplete={handleComplete} loading={loading} reset={resetPin} />
+            {loading && <p className="text-xs text-white/50 text-center">Verifying…</p>}
+            {error && <p className="text-xs text-red-300 font-medium text-center">Incorrect code. Try again.</p>}
+            <button
+              onClick={() => { setEntering(false); setError(false); }}
+              className="w-full text-xs text-white/40 hover:text-white/70 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => { setEntering(true); setError(false); setResetPin((v) => v + 1); }} className="flex items-center gap-3 group w-full text-left">
+            <div className="bg-white/20 group-hover:bg-white/30 rounded-full p-2.5 transition-all group-hover:scale-110">
+              <Lock size={18} className="text-white" />
+            </div>
+            <div>
+              <p className="text-2xl font-black text-white/30 tracking-widest select-none">₹ ·····</p>
+              <p className="text-[11px] text-emerald-200 group-hover:text-white transition-colors mt-0.5">Click to unlock with employee code</p>
+            </div>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function StatCard({ label, value, icon: Icon, insight, href }: { label: string; value: unknown; icon: React.ElementType; insight?: string; href: string }) {
   return (
@@ -37,7 +113,8 @@ function StatCard({ label, value, icon: Icon, insight, href }: { label: string; 
 
 export default function DashboardPage() {
   const { data: summary, isLoading: ls } = useQuery({ queryKey: ["summary"], queryFn: getDashboardSummary });
-  const { data: topProducts, isLoading: lp } = useQuery({ queryKey: ["top-products"], queryFn: getTopProducts });
+  const { isLoading: lp2 } = useQuery({ queryKey: ["profit"], queryFn: getDashboardProfit });
+  const { data: topProducts, isLoading: ltp } = useQuery({ queryKey: ["top-products"], queryFn: getTopProducts });
   const { data: daily, isLoading: ld } = useQuery({ queryKey: ["daily"], queryFn: getDailyActivity });
   const { data: leaders } = useQuery({ queryKey: ["leaders"], queryFn: getProductLeaders });
 
@@ -117,6 +194,7 @@ export default function DashboardPage() {
             href="/orders"
             insight={s?.total_orders && s.total_orders > 0 ? `avg ${money(Math.round((s.total_order_value ?? 0) / s.total_orders))} per order` : "sell rate basis"}
           />
+          <ProfitCard isLoading={lp2} />
         </>)}
       </div>
 
@@ -146,7 +224,7 @@ export default function DashboardPage() {
             <CardTitle className="text-base">Top Products by Order Value</CardTitle>
           </CardHeader>
           <CardContent>
-            {lp ? <Skeleton className="h-52" /> : (
+            {ltp ? <Skeleton className="h-52" /> : (
               <ResponsiveContainer width="100%" height={210}>
                 <BarChart
                   data={(topProducts as Record<string, unknown>[] ?? []).slice(0, 6)}
