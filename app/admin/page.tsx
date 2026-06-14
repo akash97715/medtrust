@@ -1,6 +1,11 @@
 "use client";
-import Link from "next/link";
-import { Users, Package, CalendarCheck, ShoppingCart, ChevronRight } from "lucide-react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Users, Package, CalendarCheck, ShoppingCart, ChevronRight, Lock } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
+const MASTER_CODE = "97715";
 
 const actions = [
   {
@@ -42,6 +47,26 @@ const actions = [
 ];
 
 export default function AdminPage() {
+  const router = useRouter();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [error, setError] = useState(false);
+
+  const openDialog = (href: string) => {
+    setPendingHref(href);
+    setCode("");
+    setError(false);
+  };
+
+  const handleSubmit = () => {
+    if (code === MASTER_CODE) {
+      router.push(pendingHref!);
+      setPendingHref(null);
+    } else {
+      setError(true);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-lg mx-auto md:mx-0">
       <div>
@@ -51,10 +76,10 @@ export default function AdminPage() {
 
       <div className="flex flex-col gap-3">
         {actions.map(({ href, icon: Icon, color, border, title, hindi, desc }) => (
-          <Link
+          <button
             key={href}
-            href={href}
-            className={`flex items-center gap-4 p-4 bg-white rounded-xl border ${border} hover:shadow-md active:scale-[0.98] transition-all`}
+            onClick={() => openDialog(href)}
+            className={`flex items-center gap-4 p-4 bg-white rounded-xl border ${border} hover:shadow-md active:scale-[0.98] transition-all text-left w-full`}
           >
             <div className={`flex items-center justify-center w-11 h-11 rounded-xl ${color} shrink-0`}>
               <Icon size={22} />
@@ -67,9 +92,34 @@ export default function AdminPage() {
               <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{desc}</p>
             </div>
             <ChevronRight size={18} className="text-slate-300 shrink-0" />
-          </Link>
+          </button>
         ))}
       </div>
+
+      {pendingHref && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
+            <div className="flex items-center gap-2 mb-1">
+              <Lock size={16} className="text-slate-500" />
+              <h2 className="font-semibold text-slate-800">Employee Code Required</h2>
+            </div>
+            <p className="text-sm text-slate-500 mb-4">Enter your employee code to continue.</p>
+            <Input
+              type="password"
+              placeholder="Enter code…"
+              value={code}
+              autoFocus
+              onChange={(e) => { setCode(e.target.value); setError(false); }}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+            />
+            {error && <p className="text-xs text-red-500 mt-1.5">Invalid employee code. Please try again.</p>}
+            <div className="flex gap-2 mt-4">
+              <Button onClick={handleSubmit} className="flex-1 bg-teal-600 hover:bg-teal-700">Continue</Button>
+              <Button variant="outline" onClick={() => setPendingHref(null)}>Cancel</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
