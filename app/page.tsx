@@ -1,25 +1,15 @@
 import Link from "next/link";
-import Image from "next/image";
 import {
-  ArrowRight, ShieldCheck, BadgeCheck, Star,
-  HeartPulse, Building2, Zap, Store,
+  ArrowRight, ShieldCheck, BadgeCheck,
+  Zap, Building2, Phone, Package,
 } from "lucide-react";
-
-const IMGS = {
-  hero:     "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1200&q=80",
-  products: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=800&q=80",
-  hospital: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=800&q=80",
-};
-
-// Reusable text-shadow style for on-image text
-const shadow = { textShadow: "0 1px 12px rgba(0,0,0,0.9), 0 2px 4px rgba(0,0,0,0.6)" } as React.CSSProperties;
 
 export default function LandingPage() {
   return (
-    <div className="h-screen flex flex-col bg-[#0c1220] text-white overflow-hidden">
+    <div className="min-h-screen bg-[#080e1a] text-white flex flex-col">
 
       {/* ── NAVBAR ── */}
-      <nav className="shrink-0 border-b border-white/8 px-6 md:px-10 h-14 flex items-center justify-between z-10 bg-[#0c1220]">
+      <nav className="sticky top-0 z-20 border-b border-white/[0.06] bg-[#080e1a]/95 backdrop-blur-md px-5 md:px-10 h-14 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-teal-500 shadow-lg shadow-teal-500/40 shrink-0">
             <span className="text-white font-black text-sm">M</span>
@@ -29,179 +19,124 @@ export default function LandingPage() {
             <p className="text-[9px] text-teal-400/70 font-bold tracking-[0.2em]">HEALTHCARE</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href="/company" className="text-xs font-semibold text-white/60 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/8 transition-colors">
-            About
-          </Link>
-          <Link href="/catalog" className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-white text-xs font-black px-4 py-2 rounded-lg transition-colors shadow-lg shadow-amber-500/30 tracking-wide">
-            View Catalog <ArrowRight size={13} />
-          </Link>
-        </div>
+        <Link
+          href="/company"
+          className="text-xs font-semibold text-white/50 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/8 transition-colors"
+        >
+          Our Company
+        </Link>
       </nav>
 
-      {/* ── MAIN ── */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
+      {/* ── HERO ── */}
+      <section className="flex-1 flex flex-col items-center justify-center px-5 py-16 md:py-24 text-center">
 
-        {/* LEFT HERO */}
-        <div className="md:w-[40%] shrink-0 relative flex flex-col justify-end overflow-hidden border-b-2 md:border-b-0 md:border-r-2 border-white/20">
-          <Image src={IMGS.hero} alt="Medical professional" fill className="object-cover object-center" priority />
-          {/* Stronger gradient for text legibility */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f1c] via-[#0a0f1c]/80 to-[#0a0f1c]/25" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0a0f1c]/30 to-transparent" />
-
-          <div className="relative z-10 p-8 md:p-10">
-            {/* Status pill */}
-            <div className="inline-flex items-center gap-2 bg-teal-400/20 border border-teal-400/40 rounded-full px-3.5 py-1.5 mb-5 backdrop-blur-sm">
-              <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse shrink-0" />
-              <span className="text-teal-200 text-[11px] font-bold tracking-wide">GST Registered · MSME Certified</span>
-            </div>
-
-            {/* Brand name */}
-            <h1
-              className="text-5xl md:text-6xl font-black tracking-tighter leading-none text-white mb-1"
-              style={shadow}
-            >
-              MedTrust
-            </h1>
-            <h2
-              className="text-xl font-extrabold text-teal-400 tracking-wide mb-4"
-              style={shadow}
-            >
-              Healthcare
-            </h2>
-
-            {/* Tagline */}
-            <p className="text-white/90 text-sm md:text-[15px] font-medium leading-relaxed mb-6 max-w-xs" style={shadow}>
-              Genuine medical &amp; surgical supplies at the{" "}
-              <span className="text-teal-300 font-extrabold">lowest market rates</span>
-              {" "}— trusted by hospitals, clinics and agencies.
-            </p>
-
-            {/* CTA */}
-            <Link
-              href="/catalog"
-              className="group inline-flex items-center gap-2.5 bg-amber-500 hover:bg-amber-400 text-white font-black text-sm px-6 py-3 rounded-xl shadow-2xl shadow-amber-500/40 transition-all duration-150 hover:-translate-y-0.5 mb-6 tracking-wide"
-            >
-              <Store size={15} />
-              Browse Product Catalog
-              <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-
-            {/* Trust bullets */}
-            <div className="space-y-2">
-              {[
-                { icon: BadgeCheck, text: "100% Genuine — certified manufacturers only" },
-                { icon: Star,        text: "Lowest market rates — no middlemen" },
-                { icon: ShieldCheck, text: "GST-compliant billing on every order" },
-              ].map(({ icon: Icon, text }) => (
-                <div key={text} className="flex items-center gap-2.5">
-                  <Icon size={13} className="text-teal-400 shrink-0 drop-shadow" />
-                  <p className="text-white/80 text-xs font-semibold" style={shadow}>{text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+        {/* Badge */}
+        <div className="inline-flex items-center gap-2 bg-teal-500/10 border border-teal-500/30 rounded-full px-4 py-1.5 mb-8">
+          <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse shrink-0" />
+          <span className="text-teal-300 text-[11px] font-bold tracking-widest uppercase">GST Registered · MSME Certified</span>
         </div>
 
-        {/* RIGHT CARDS */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-5 min-h-0">
-          <div className="flex flex-col gap-3 h-full">
+        {/* Headline */}
+        <h1 className="text-4xl md:text-6xl font-black tracking-tighter leading-[1.05] text-white max-w-2xl mb-5">
+          Surgical &amp; Medical{" "}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-300 to-teal-500">
+            Supplies
+          </span>
+          <br />You Can Trust
+        </h1>
 
-            {/* Hero catalog card */}
-            <Link
-              href="/catalog"
-              className="group relative rounded-2xl overflow-hidden border-2 border-amber-400/60 hover:border-amber-400 transition-all duration-200 flex-1 min-h-[180px] shadow-lg shadow-amber-500/10"
-            >
-              <Image src={IMGS.products} alt="Product catalog" fill className="object-cover object-center group-hover:scale-105 transition-transform duration-500" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-black/20" />
+        {/* Subtext */}
+        <p className="text-white/55 text-base md:text-lg font-medium max-w-md mb-10 leading-relaxed">
+          Genuine certified products for hospitals, clinics and agencies —
+          at the <span className="text-white/80 font-semibold">lowest market rates</span>, delivered in 2 days.
+        </p>
 
-              {/* Pulsing badge */}
-              <div className="absolute top-4 right-4">
-                <span className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-400" />
-                </span>
-              </div>
+        {/* Primary CTA */}
+        <Link
+          href="/catalog"
+          className="group flex items-center justify-center gap-3 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white font-black text-base px-8 py-4 rounded-2xl shadow-2xl shadow-amber-500/30 transition-all duration-150 active:scale-[0.97] w-full max-w-xs md:w-auto tracking-wide"
+        >
+          <Package size={18} />
+          Browse Products
+          <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+        </Link>
 
-              <div className="absolute inset-0 p-5 flex flex-col justify-between">
-                <div className="bg-amber-400/25 backdrop-blur-md border border-amber-400/50 p-2.5 rounded-xl w-fit">
-                  <Store size={17} className="text-amber-200" />
-                </div>
-                <div>
-                  <p className="text-amber-300 text-[10px] font-black uppercase tracking-[0.15em] mb-1" style={shadow}>
-                    Surgical &amp; Medical Supplies
-                  </p>
-                  <h3 className="font-black text-white text-xl leading-tight tracking-tight mb-1.5" style={shadow}>
-                    Product Catalog
-                  </h3>
-                  <p className="text-white/75 text-xs font-semibold mb-4" style={shadow}>
-                    Sutures, gloves, syringes &amp; more — all deliveries within 2 days
-                  </p>
-                  <div className="inline-flex items-center gap-2 bg-amber-500 group-hover:bg-amber-400 text-white text-xs font-black px-4 py-2 rounded-xl transition-colors tracking-wide shadow-lg shadow-amber-500/30">
-                    Browse All Products <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-              </div>
-            </Link>
-
-            {/* Why Choose Us */}
-            <div className="relative rounded-2xl overflow-hidden border-2 border-white/15 min-h-[130px]">
-              <Image src={IMGS.hospital} alt="Hospital" fill className="object-cover object-center" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/92 via-black/65 to-black/20" />
-              <div className="absolute inset-0 p-4 flex flex-col justify-between">
-                <div className="bg-amber-400/25 backdrop-blur-md border border-amber-400/40 p-2 rounded-xl w-fit">
-                  <Star size={15} className="text-amber-200" />
-                </div>
-                <div>
-                  <h3 className="font-black text-white text-sm tracking-tight mb-2" style={shadow}>Why Choose Us</h3>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-                    {[
-                      { icon: Zap,        text: "Lowest market rates" },
-                      { icon: BadgeCheck, text: "Certified products only" },
-                      { icon: HeartPulse, text: "Trusted by 20+ hospitals" },
-                      { icon: ShieldCheck, text: "GST-compliant billing" },
-                    ].map(({ icon: Icon, text }) => (
-                      <div key={text} className="flex items-center gap-1.5">
-                        <Icon size={10} className="text-amber-300 shrink-0" />
-                        <p className="text-white/85 text-[11px] font-semibold" style={shadow}>{text}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+        {/* Trust stats */}
+        <div className="flex items-center justify-center gap-6 mt-10 flex-wrap">
+          {[
+            { value: "20+", label: "Hospitals Served" },
+            { value: "2-Day", label: "Delivery" },
+            { value: "₹0", label: "Hidden Charges" },
+          ].map(({ value, label }) => (
+            <div key={label} className="text-center">
+              <p className="text-xl font-black text-white">{value}</p>
+              <p className="text-[11px] text-white/40 font-semibold mt-0.5">{label}</p>
             </div>
-
-            {/* Company strip */}
-            <Link href="/company" className="group relative rounded-2xl overflow-hidden border-2 border-white/15 hover:border-white/35 transition-all duration-200 h-11 shrink-0">
-              <div className="absolute inset-0 bg-white/5 group-hover:bg-white/8 transition-colors" />
-              <div className="relative h-full flex items-center justify-between px-4">
-                <div className="flex items-center gap-3">
-                  <div className="bg-white/10 p-1.5 rounded-lg">
-                    <Building2 size={13} className="text-white/70" />
-                  </div>
-                  <span className="font-black text-white text-xs tracking-wide">Company Profile &amp; Certifications</span>
-                  <span className="text-white/40 text-[10px] font-mono hidden sm:block">GST: 29EYSPS5133L1ZF · Udyam: UDYAM-KR-03-0706248</span>
-                </div>
-                <ArrowRight size={12} className="text-white/35 group-hover:text-white shrink-0 transition-colors" />
-              </div>
-            </Link>
-
-          </div>
+          ))}
         </div>
-      </div>
+      </section>
+
+      {/* ── DIVIDER ── */}
+      <div className="border-t border-white/[0.06]" />
+
+      {/* ── FEATURES ── */}
+      <section className="px-5 md:px-10 py-12 md:py-16 max-w-4xl mx-auto w-full">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            {
+              icon: BadgeCheck,
+              color: "text-teal-400",
+              bg: "bg-teal-500/10 border-teal-500/20",
+              title: "100% Genuine",
+              desc: "Sourced directly from certified manufacturers. No counterfeit, no compromise.",
+            },
+            {
+              icon: Zap,
+              color: "text-amber-400",
+              bg: "bg-amber-500/10 border-amber-500/20",
+              title: "Lowest Market Rates",
+              desc: "No middlemen. Direct pricing means you save more on every order.",
+            },
+            {
+              icon: ShieldCheck,
+              color: "text-blue-400",
+              bg: "bg-blue-500/10 border-blue-500/20",
+              title: "GST-Compliant Billing",
+              desc: "Fully GST-registered. Proper tax invoices on every single order.",
+            },
+          ].map(({ icon: Icon, color, bg, title, desc }) => (
+            <div key={title} className={`rounded-2xl border p-5 ${bg}`}>
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-4 ${bg}`}>
+                <Icon size={18} className={color} />
+              </div>
+              <h3 className="font-bold text-white text-sm mb-1.5">{title}</h3>
+              <p className="text-white/45 text-xs leading-relaxed">{desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* ── FOOTER ── */}
-      <div className="shrink-0 border-t border-white/8 bg-black/30 px-6 md:px-10 h-10 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <span className="text-[10px] text-white/35 font-mono font-semibold">GST 29EYSPS5133L1ZF</span>
-          <span className="text-white/15 hidden sm:block">·</span>
-          <span className="text-[10px] text-white/35 font-mono font-semibold hidden sm:block">UDYAM-KR-03-0706248</span>
+      <footer className="border-t border-white/[0.06] px-5 md:px-10 py-6">
+        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
+            <Link href="/company" className="group flex items-center gap-2 text-white/40 hover:text-white/70 transition-colors">
+              <Building2 size={13} />
+              <span className="text-xs font-semibold">About MedTrust</span>
+              <ArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+            <span className="text-white/15 hidden sm:block">·</span>
+            <a href="tel:+918789198929" className="flex items-center gap-1.5 text-white/40 hover:text-white/70 transition-colors">
+              <Phone size={12} />
+              <span className="text-xs font-semibold">+91 87891 98929</span>
+            </a>
+          </div>
+          <div className="flex flex-col items-center sm:items-end gap-1">
+            <span className="text-[10px] text-white/25 font-mono">GST: 29EYSPS5133L1ZF · UDYAM-KR-03-0706248</span>
+            <span className="text-[10px] text-white/20 font-semibold">&copy; {new Date().getFullYear()} MedTrust Healthcare</span>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <BadgeCheck size={11} className="text-teal-400/70" />
-          <span className="text-[10px] text-white/40 font-semibold">&copy; {new Date().getFullYear()} MedTrust Healthcare</span>
-        </div>
-      </div>
+      </footer>
 
     </div>
   );
