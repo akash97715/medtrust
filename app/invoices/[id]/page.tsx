@@ -62,14 +62,14 @@ function Td({ children, right, bold, small, gray }: {
   children: React.ReactNode; right?: boolean; bold?: boolean; small?: boolean; gray?: boolean;
 }) {
   return (
-    <td className={`border border-slate-300 px-2 py-1.5 ${right ? "text-right" : "text-left"} ${bold ? "font-bold" : ""} ${small ? "text-[11px]" : "text-xs"} ${gray ? "bg-slate-50 text-slate-500" : "text-slate-800"}`}>
+    <td className={`border border-slate-400 px-2 py-1.5 ${right ? "text-right" : "text-left"} ${bold ? "font-black" : "font-medium"} ${small ? "text-[11px]" : "text-xs"} ${gray ? "bg-slate-100 text-slate-600" : "text-slate-900"}`}>
       {children}
     </td>
   );
 }
 function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
   return (
-    <th className={`border border-slate-300 bg-[#b8cce4] px-2 py-2 text-[11px] font-bold text-slate-700 ${right ? "text-right" : "text-center"}`}>
+    <th className={`border border-slate-500 bg-[#1e3a5c] px-2 py-2 text-[11px] font-black text-white ${right ? "text-right" : "text-center"}`}>
       {children}
     </th>
   );
@@ -114,24 +114,54 @@ export default function InvoicePage() {
   return (
     <>
       <style>{`
+        * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         @media print {
           body { background: white !important; margin: 0; }
           .no-print { display: none !important; }
-          .invoice-wrapper { background: white !important; padding: 0 !important; }
-          .invoice-page { box-shadow: none !important; border-radius: 0 !important; max-width: 100% !important; }
+          .invoice-wrapper { background: white !important; padding: 0 !important; overflow: visible !important; }
+          .invoice-page { box-shadow: none !important; border-radius: 0 !important; max-width: 100% !important; width: 100% !important; }
+
+          /* Dark header background */
+          .invoice-dark-hdr { background-color: #0c1220 !important; }
+
+          /* White body — all text black */
+          .invoice-body p, .invoice-body span, .invoice-body td { color: #000000 !important; opacity: 1 !important; }
+
+          /* Dark header — overrides body rule above (higher specificity: 2 classes + element) */
+          .invoice-body .invoice-dark-hdr p,
+          .invoice-body .invoice-dark-hdr span,
+          .invoice-body .invoice-dark-hdr * { color: #ffffff !important; opacity: 1 !important; }
+
+          /* Section row headers — overrides body rule above */
+          .invoice-body .section-hdr p,
+          .invoice-body .section-hdr span,
+          .invoice-body .section-hdr * { color: #ffffff !important; opacity: 1 !important; }
+          .section-hdr { background-color: #1e3a5c !important; }
+
+          /* Table */
+          table, td, th { border-color: #000 !important; border-width: 1px !important; }
+          td { color: #000 !important; font-weight: 600 !important; }
+          th { background-color: #1e3a5c !important; color: #fff !important; font-weight: 900 !important; }
+
+          /* Bottom strip */
+          .invoice-strip { border-color: #000 !important; }
+          .invoice-strip * { color: #000 !important; font-weight: 700 !important; }
+
           @page { size: A4 portrait; margin: 8mm 10mm; }
         }
       `}</style>
 
       {/* Controls */}
-      <div className="no-print bg-slate-100 px-4 pt-6 pb-3">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <Link href="/orders" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800">
+      <div className="no-print bg-slate-100 px-4 pt-5 pb-3">
+        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <Link href="/orders" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 px-1 py-2">
             <ArrowLeft size={15} /> Back to Orders
           </Link>
+          <div className="flex-1" />
+          <p className="text-xs text-slate-400 sm:hidden text-center">Scroll right to see full invoice · Pinch to zoom</p>
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-2 bg-[#0c1220] hover:bg-slate-800 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-md transition-colors"
+            className="flex items-center justify-center gap-2 bg-[#0c1220] hover:bg-slate-800 active:bg-slate-900 text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-md transition-colors"
           >
             <Printer size={15} /> Print / Save PDF
           </button>
@@ -144,12 +174,12 @@ export default function InvoicePage() {
         )}
       </div>
 
-      {/* Invoice document */}
-      <div className="invoice-wrapper bg-slate-100 px-4 pb-10 pt-3">
-        <div className="invoice-page max-w-4xl mx-auto bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden font-sans">
+      {/* Invoice document — horizontal scroll on mobile */}
+      <div className="invoice-wrapper bg-slate-100 px-2 sm:px-4 pb-10 pt-3 overflow-x-auto">
+        <div className="invoice-page invoice-body min-w-[700px] max-w-4xl mx-auto bg-white rounded-xl shadow-xl border border-slate-300 overflow-hidden font-sans">
 
           {/* ── Branded header ── */}
-          <div className="bg-[#0c1220] px-8 pt-6 pb-5">
+          <div className="invoice-dark-hdr bg-[#0c1220] px-8 pt-6 pb-5">
             <div className="flex items-start justify-between">
               {/* Left: brand */}
               <div>
@@ -160,19 +190,19 @@ export default function InvoicePage() {
                   <div>
                     <p className="text-white font-black text-xl tracking-tight leading-none">{CO.name}</p>
                     <p className="text-teal-400 text-[11px] font-semibold tracking-wide mt-0.5">{CO.tagline}</p>
-                    <p className="text-white/30 text-[9px] font-bold tracking-[0.14em] mt-1 uppercase">Reliable · Rapid · Cost-Optimal</p>
+                    <p className="text-white/60 text-[9px] font-bold tracking-[0.14em] mt-1 uppercase">Reliable · Rapid · Cost-Optimal</p>
                   </div>
                 </div>
                 <div className="space-y-0.5 ml-1">
-                  <p className="text-white/50 text-[11px] font-mono">GSTIN: <span className="text-white/85 font-semibold">{CO.gst}</span></p>
-                  <p className="text-white/50 text-[11px] font-mono">Udyam: <span className="text-white/85 font-semibold">{CO.udyam}</span></p>
+                  <p className="text-white/70 text-[11px] font-mono">GSTIN: <span className="text-white font-semibold">{CO.gst}</span></p>
+                  <p className="text-white/70 text-[11px] font-mono">Udyam: <span className="text-white font-semibold">{CO.udyam}</span></p>
                 </div>
               </div>
               {/* Right: invoice label */}
               <div className="text-right">
-                <p className="text-white/30 text-[10px] font-bold uppercase tracking-[0.2em] mb-1">Tax Invoice</p>
+                <p className="text-white/70 text-[10px] font-bold uppercase tracking-[0.2em] mb-1">Tax Invoice</p>
                 <p className="no-print text-white font-black text-2xl tracking-tight">{invoiceNo(o?.order_id)}</p>
-                <p className="text-white/50 text-xs mt-1">Date: <span className="text-white/85">{fmtDate(o?.order_date)}</span></p>
+                <p className="text-white/70 text-xs mt-1">Date: <span className="text-white font-semibold">{fmtDate(o?.order_date)}</span></p>
                 {(!!o?.bill_period_from || !!o?.bill_period_to) && (
                   <p className="no-print text-white/40 text-[11px] mt-0.5">
                     Period: {fmtDate(o?.bill_period_from)} – {fmtDate(o?.bill_period_to)}
@@ -189,14 +219,14 @@ export default function InvoicePage() {
           <div className="h-[3px] bg-gradient-to-r from-teal-600 via-teal-400 to-teal-600" />
 
           {/* ── Title bar ── */}
-          <div className="bg-[#b8cce4] text-center py-1.5 border-b border-slate-300">
-            <h1 className="text-sm font-black text-slate-800 tracking-widest uppercase">Tax Invoice</h1>
+          <div className="section-hdr bg-[#1e3a5c] text-center py-1.5 border-b border-slate-500">
+            <h1 className="text-sm font-black text-white tracking-widest uppercase">Tax Invoice</h1>
           </div>
 
           {/* ── Bill to Party ── */}
           <div className="border-b border-slate-300">
-            <div className="bg-[#b8cce4] px-4 py-1 border-b border-slate-300">
-              <p className="text-[11px] font-black text-slate-700">Bill to Party</p>
+            <div className="section-hdr bg-[#1e3a5c] px-4 py-1 border-b border-slate-500">
+              <p className="text-[11px] font-black text-white">Bill to Party</p>
             </div>
             <div className="px-4 py-2">
               <p className="text-sm font-black text-slate-800">Name : {fmt(o?.party_name)}</p>
@@ -270,8 +300,8 @@ export default function InvoicePage() {
           <div className="grid grid-cols-[1fr_280px] border-b border-slate-300">
             {/* Left: amount in words */}
             <div className="border-r border-slate-300">
-              <div className="bg-[#b8cce4] px-4 py-1 border-b border-slate-300">
-                <p className="text-[11px] font-black text-slate-700">Total Invoice amount in words</p>
+              <div className="section-hdr bg-[#1e3a5c] px-4 py-1 border-b border-slate-500">
+                <p className="text-[11px] font-black text-white">Total Invoice amount in words</p>
               </div>
               <div className="px-4 py-4 flex items-center min-h-[80px]">
                 <p className="text-xs font-bold text-slate-700 uppercase leading-relaxed">
@@ -305,8 +335,8 @@ export default function InvoicePage() {
           <div className="grid grid-cols-[1fr_280px] border-b border-slate-300">
             {/* Bank */}
             <div className="border-r border-slate-300">
-              <div className="bg-[#b8cce4] px-4 py-1 border-b border-slate-300">
-                <p className="text-[11px] font-black text-slate-700">Bank Details</p>
+              <div className="section-hdr bg-[#1e3a5c] px-4 py-1 border-b border-slate-500">
+                <p className="text-[11px] font-black text-white">Bank Details</p>
               </div>
               <div className="px-4 py-3 grid grid-cols-2 gap-3">
                 <div className="space-y-2">
