@@ -28,8 +28,9 @@ function ProductForm({ onSaved }: { onSaved: () => void }) {
 
   const mut = useMutation({
     mutationFn: createProduct,
-    onSuccess: () => {
-      toast.success("Product saved");
+    onSuccess: (data) => {
+      const d = data as { id: string; reactivated?: boolean };
+      toast.success(d.reactivated ? "Product restored and updated" : "Product saved");
       qc.invalidateQueries({ queryKey: ["products"] });
       onSaved();
     },

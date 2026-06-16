@@ -88,6 +88,33 @@ def get_product(product_id: str):
 
 @router.post("", status_code=201)
 def create_product(body: ProductCreate):
+    # If a soft-deleted product with this name exists, reactivate + update it
+    inactive = query(
+        "SELECT id FROM products WHERE product_name = %s AND is_active = FALSE",
+        (body.product_name,),
+    )
+    if inactive:
+        product_id = str(inactive[0]["id"])
+        execute(
+            """
+            UPDATE products
+            SET is_active = TRUE, sku = %s, product_category = %s, unit_of_measure = %s,
+                preferred_brand = %s, hindi_name = %s, sample_priority = %s,
+                notes = %s, updated_at = NOW()
+            WHERE id = %s
+            """,
+            (body.sku or None, body.product_category or None, body.unit_of_measure,
+             body.preferred_brand or None, body.hindi_name or None, body.sample_priority,
+             body.notes or None, product_id),
+        )
+        if body.alias_name:
+            execute(
+                "INSERT INTO product_aliases (product_id, alias_name) VALUES (%s, %s) ON CONFLICT (alias_name) DO NOTHING",
+                (product_id, body.alias_name),
+            )
+        return {"id": product_id, "reactivated": True}
+
+    # No soft-deleted record — insert fresh
     try:
         with get_conn() as conn:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:

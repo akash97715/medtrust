@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from database import query, execute, scalar
 import psycopg2
+import psycopg2.errors
 
 router = APIRouter()
 
@@ -152,16 +153,46 @@ def get_party(party_id: str):
 def create_party(body: PartyCreate):
     location_id = upsert_location(body.city, body.district, body.state,
                                    body.distance_from_base_km, body.base_reference)
-    row = execute(
-        """
-        INSERT INTO parties (party_type, name, phone, contact_person, location_id, address_line, notes)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-        RETURNING id
-        """,
-        (body.party_type, body.name, body.phone or None, body.contact_person or None,
-         location_id, body.address_line or None, body.notes or None),
-        returning=True,
+
+    # If a soft-deleted party with this exact name exists, reactivate + update it
+    inactive = query(
+        "SELECT id FROM parties WHERE name = %s AND is_active = FALSE",
+        (body.name,),
     )
+    if inactive:
+        party_id = str(inactive[0]["id"])
+        execute(
+            """
+            UPDATE parties
+            SET is_active = TRUE, party_type = %s, name = %s, phone = %s,
+                contact_person = %s, location_id = %s, address_line = %s,
+                notes = %s, updated_at = NOW()
+            WHERE id = %s
+            """,
+            (body.party_type, body.name, body.phone or None, body.contact_person or None,
+             location_id, body.address_line or None, body.notes or None, party_id),
+        )
+        return {"id": party_id, "reactivated": True}
+
+    # No soft-deleted record — insert fresh
+    try:
+        row = execute(
+            """
+            INSERT INTO parties (party_type, name, phone, contact_person, location_id, address_line, notes)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+            """,
+            (body.party_type, body.name, body.phone or None, body.contact_person or None,
+             location_id, body.address_line or None, body.notes or None),
+            returning=True,
+        )
+    except psycopg2.errors.UniqueViolation:
+        raise HTTPException(
+            status_code=409,
+            detail=f'A party named "{body.name}" already exists. Please use a different name or restore the existing one.',
+        )
+    except psycopg2.Error as e:
+        raise HTTPException(status_code=422, detail=str(e).splitlines()[0])
     return {"id": str(row["id"])}
 
 

@@ -33,10 +33,11 @@ export default function AddPartyPage() {
   const mut = useMutation({
     mutationFn: (v: Record<string, unknown>) => createParty(cleanPayload(v)),
     onSuccess: (data) => {
-      toast.success("Party saved");
+      const d = data as { id: string; reactivated?: boolean };
+      toast.success(d.reactivated ? "Party restored and updated" : "Party saved");
       qc.invalidateQueries({ queryKey: ["parties"] });
       reset();
-      router.push(`/parties/${(data as { id: string }).id}`);
+      router.push(`/parties/${d.id}`);
     },
     onError: (e: Error) => toast.error(e.message),
   });
