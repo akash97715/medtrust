@@ -3,12 +3,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { getOrders } from "@/lib/api";
-import { money, fmt } from "@/lib/utils";
+import { money } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
-import { Search, Pencil, FileText, Lock } from "lucide-react";
+import { Search, Pencil, FileText, Lock, Package } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { PinInput } from "@/components/pin-input";
 
@@ -19,6 +19,46 @@ const STATUS_COLORS: Record<string, string> = {
   draft: "bg-amber-100 text-amber-700",
   cancelled: "bg-red-100 text-red-600",
 };
+
+function fmtDate(d: string) {
+  return new Date(d + "T00:00:00").toLocaleDateString("en-IN", {
+    day: "2-digit", month: "short", year: "numeric",
+  });
+}
+
+type OrderSummary = {
+  order_id: string;
+  order_date: string;
+  party_id: string;
+  party_name: string;
+  order_status: string;
+  reference_number: string | null;
+  item_count: number;
+  total_value: number;
+};
+
+function groupOrders(rows: Record<string, unknown>[]): OrderSummary[] {
+  const map = new Map<string, OrderSummary>();
+  for (const r of rows) {
+    const id = String(r.order_id);
+    if (!map.has(id)) {
+      map.set(id, {
+        order_id: id,
+        order_date: String(r.order_date),
+        party_id: String(r.party_id),
+        party_name: String(r.party_name),
+        order_status: String(r.order_status),
+        reference_number: r.reference_number ? String(r.reference_number) : null,
+        item_count: 0,
+        total_value: 0,
+      });
+    }
+    const entry = map.get(id)!;
+    entry.item_count += 1;
+    entry.total_value += Number(r.line_value) || 0;
+  }
+  return Array.from(map.values());
+}
 
 export default function OrdersPage() {
   const router = useRouter();
@@ -31,21 +71,21 @@ export default function OrdersPage() {
 
   const openDialog = (href: string) => { setPendingHref(href); setError(false); setResetPin((v) => v + 1); };
   const handleComplete = async (pin: string) => {
-    setLoading(true);
-    setError(false);
+    setLoading(true); setError(false);
     const ok = await tryUnlock(pin);
     setLoading(false);
     if (ok) { router.push(pendingHref!); setPendingHref(null); }
     else { setError(true); setResetPin((v) => v + 1); }
   };
-  const { data, isLoading } = useQuery({ queryKey: ["orders"], queryFn: getOrders });
 
+  const { data, isLoading } = useQuery({ queryKey: ["orders"], queryFn: getOrders });
   const d = data as { rows: Record<string, unknown>[]; total_confirmed_value: number } | undefined;
-  const rows = (d?.rows ?? []).filter(
-    (r) => !search ||
-      String(r.party_name).toLowerCase().includes(search.toLowerCase()) ||
-      String(r.product_name).toLowerCase().includes(search.toLowerCase()) ||
-      String(r.order_date).includes(search)
+
+  const orders = groupOrders(d?.rows ?? []).filter(
+    (o) => !search ||
+      o.party_name.toLowerCase().includes(search.toLowerCase()) ||
+      o.order_date.includes(search) ||
+      (o.reference_number ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -64,7 +104,7 @@ export default function OrdersPage() {
 
       <div className="relative max-w-sm">
         <Search size={15} className="absolute left-3 top-2.5 text-slate-400" />
-        <Input placeholder="Search by party or product…" className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <Input placeholder="Search by party, date, or reference…" className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 
       <Card>
@@ -77,44 +117,59 @@ export default function OrdersPage() {
                     <th className="pb-2 pr-4 font-medium">Date</th>
                     <th className="pb-2 pr-4 font-medium">Party</th>
                     <th className="pb-2 pr-4 font-medium">Status</th>
-                    <th className="pb-2 pr-4 font-medium">Product</th>
-                    <th className="pb-2 pr-4 font-medium text-right">Qty</th>
-                    <th className="pb-2 pr-4 font-medium text-right">Buy Rate</th>
-                    <th className="pb-2 pr-4 font-medium text-right">Sell Rate</th>
-                    <th className="pb-2 pr-4 font-medium text-right">Line Value</th>
+                    <th className="pb-2 pr-4 font-medium text-center">Items</th>
+                    <th className="pb-2 pr-4 font-medium text-right">Total Value</th>
                     <th className="pb-2 font-medium"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((r, i) => (
-                    <tr key={i} className="border-b last:border-0 hover:bg-slate-50">
-                      <td className="py-2 pr-4 whitespace-nowrap font-medium">{fmt(r.order_date)}</td>
-                      <td className="py-2 pr-4">
-                        {fmt(r.party_name)}
+                  {orders.map((o) => (
+                    <tr key={o.order_id} className="border-b last:border-0 hover:bg-slate-50">
+                      <td className="py-3 pr-4 whitespace-nowrap">
+                        <Link
+                          href={`/orders/${o.order_id}`}
+                          className="font-semibold text-teal-700 hover:text-teal-900 hover:underline underline-offset-2 transition-colors"
+                        >
+                          {fmtDate(o.order_date)}
+                        </Link>
+                        {o.reference_number && (
+                          <p className="text-[11px] text-slate-400 mt-0.5">{o.reference_number}</p>
+                        )}
                       </td>
-                      <td className="py-2 pr-4">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[String(r.order_status)] ?? ""}`}>
-                          {fmt(r.order_status)}
+                      <td className="py-3 pr-4">
+                        <Link href={`/parties/${o.party_id}`} className="hover:text-teal-700 transition-colors">
+                          {o.party_name}
+                        </Link>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[o.order_status] ?? ""}`}>
+                          {o.order_status.replace(/_/g, " ")}
                         </span>
                       </td>
-                      <td className="py-2 pr-4">{fmt(r.product_name)}</td>
-                      <td className="py-2 pr-4 text-right">{fmt(r.quantity)}</td>
-                      <td className="py-2 pr-4 text-right">{money(r.buy_rate as number)}</td>
-                      <td className="py-2 pr-4 text-right">{money(r.sell_rate as number)}</td>
-                      <td className="py-2 pr-4 text-right font-medium text-teal-700">{money(r.line_value as number)}</td>
-                      <td className="py-2">
+                      <td className="py-3 pr-4 text-center">
+                        <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                          <Package size={11} />
+                          {o.item_count}
+                        </span>
+                      </td>
+                      <td className="py-3 pr-4 text-right font-bold text-teal-700 text-base">
+                        {money(o.total_value)}
+                      </td>
+                      <td className="py-3">
                         <div className="flex items-center gap-2">
-                          <button onClick={() => openDialog(`/invoices/${r.order_id}`)} className="text-slate-400 hover:text-teal-600" title="Generate Invoice">
+                          <button onClick={() => openDialog(`/invoices/${o.order_id}`)} className="text-slate-400 hover:text-teal-600 transition-colors" title="Generate Invoice">
                             <FileText size={14} />
                           </button>
-                          <button onClick={() => openDialog(`/orders/${r.order_id}/edit`)} className="text-slate-400 hover:text-teal-600" title="Edit Order">
+                          <button onClick={() => openDialog(`/orders/${o.order_id}/edit`)} className="text-slate-400 hover:text-teal-600 transition-colors" title="Edit Order">
                             <Pencil size={14} />
                           </button>
                         </div>
                       </td>
                     </tr>
                   ))}
-                  {rows.length === 0 && <tr><td colSpan={9} className="py-8 text-center text-slate-400">No orders found.</td></tr>}
+                  {orders.length === 0 && (
+                    <tr><td colSpan={6} className="py-8 text-center text-slate-400">No orders found.</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>

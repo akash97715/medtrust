@@ -126,9 +126,9 @@ export default function PartyDetailPage({ params }: { params: Promise<{ id: stri
     <div className="space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <Link href="/parties" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 mb-2">
-            <ArrowLeft size={14} /> Parties
-          </Link>
+          <button onClick={() => router.back()} className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 mb-2">
+            <ArrowLeft size={14} /> Back
+          </button>
           <h1 className="text-2xl font-bold text-slate-800">{fmt(p?.party_name)}</h1>
           <p className="text-slate-500 text-sm mt-1 capitalize">{fmt(p?.party_type)} · {fmt(p?.city)}, {fmt(p?.district)}</p>
         </div>

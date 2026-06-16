@@ -68,9 +68,9 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <Link href="/products" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 mb-2">
-          <ArrowLeft size={14} /> Products
-        </Link>
+        <button onClick={() => router.back()} className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 mb-2">
+          <ArrowLeft size={14} /> Back
+        </button>
         <h1 className="text-2xl font-bold text-slate-800">Edit Product</h1>
       </div>
 
@@ -95,7 +95,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 <div><label className="text-sm font-medium text-slate-700 block mb-1">Notes</label><Textarea {...register("notes")} rows={2} /></div>
                 <div className="flex gap-3">
                   <Button type="submit" disabled={updateMut.isPending}>{updateMut.isPending ? "Saving…" : "Save changes"}</Button>
-                  <Link href="/products"><Button type="button" variant="outline">Cancel</Button></Link>
+                  <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
                 </div>
               </form>
             </CardContent>

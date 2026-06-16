@@ -200,7 +200,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <Link href="/orders" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 mb-2"><ArrowLeft size={14} /> Orders</Link>
+        <button onClick={() => router.back()} className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 mb-2"><ArrowLeft size={14} /> Back</button>
         <h1 className="text-2xl font-bold text-slate-800">Edit Order</h1>
         <p className="text-slate-500 text-sm mt-1">{fmt(o?.party_name)} · {fmt(o?.order_date)}</p>
       </div>

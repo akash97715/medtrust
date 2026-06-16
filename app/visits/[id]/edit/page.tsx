@@ -70,9 +70,9 @@ export default function EditVisitPage({ params }: { params: Promise<{ id: string
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <Link href="/visits" className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 mb-2">
-          <ArrowLeft size={14} /> Visits
-        </Link>
+        <button onClick={() => router.back()} className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 mb-2">
+          <ArrowLeft size={14} /> Back
+        </button>
         <h1 className="text-2xl font-bold text-slate-800">Edit Visit</h1>
         <p className="text-slate-500 text-sm mt-1">{fmt(v?.party_name)} · Party cannot be changed</p>
       </div>
@@ -130,7 +130,7 @@ export default function EditVisitPage({ params }: { params: Promise<{ id: string
                 <div><label className="text-sm font-medium text-slate-700 block mb-1">Notes</label><Textarea {...register("notes")} rows={2} /></div>
                 <div className="flex gap-3">
                   <Button type="submit" disabled={updateMut.isPending}>{updateMut.isPending ? "Saving…" : "Save changes"}</Button>
-                  <Link href="/visits"><Button type="button" variant="outline">Cancel</Button></Link>
+                  <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
                 </div>
               </form>
             </CardContent>

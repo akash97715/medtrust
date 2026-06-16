@@ -19,6 +19,7 @@ type LineItem = {
   quantity: string;
   unit_of_measure: string;
   buy_rate: string;
+  profit_pct: string;
   sell_rate: string;
   hsn_code: string;
   discount: string;
@@ -33,6 +34,7 @@ function makeItem(): LineItem {
     quantity: "",
     unit_of_measure: "piece",
     buy_rate: "",
+    profit_pct: "",
     sell_rate: "",
     hsn_code: "",
     discount: "0",
@@ -72,6 +74,9 @@ function ItemRow({
   const sell = parseFloat(item.sell_rate) || 0;
   const disc = parseFloat(item.discount) || 0;
   const lineTotal = qty * sell - disc;
+  const buy = parseFloat(item.buy_rate) || 0;
+  const pct = parseFloat(item.profit_pct) || 0;
+  const suggestedSell = buy > 0 && pct > 0 ? buy * (1 + pct / 100) : null;
 
   return (
     <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
@@ -153,34 +158,66 @@ function ItemRow({
             </div>
           </div>
 
-          {/* Buy rate + Sell rate */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-semibold text-slate-600 mb-1 block">
-                Buy Rate
-                <Tip text="Your cost price — what you paid the supplier." />
-              </label>
-              <Input
-                type="number" step="0.01"
-                value={item.buy_rate}
-                onChange={(e) => onChange(item.id, { buy_rate: e.target.value })}
-                placeholder="₹0.00"
-                className="h-9 text-sm"
-              />
+          {/* Buy rate */}
+          <div>
+            <label className="text-xs font-semibold text-slate-600 mb-1 block">
+              Buy Rate
+              <Tip text="Your cost price — what you paid the supplier." />
+            </label>
+            <Input
+              type="number" step="0.01"
+              value={item.buy_rate}
+              onChange={(e) => onChange(item.id, { buy_rate: e.target.value, profit_pct: "" })}
+              placeholder="₹0.00"
+              className="h-9 text-sm"
+            />
+          </div>
+
+          {/* Profit margin calculator */}
+          {buy > 0 && (
+            <div className="flex flex-wrap items-center gap-2 bg-teal-50 border border-teal-100 rounded-lg px-3 py-2.5">
+              <span className="text-[11px] font-semibold text-teal-700 uppercase tracking-wide shrink-0">Margin %</span>
+              <div className="relative shrink-0">
+                <Input
+                  type="number" min="1" max="1000" step="any"
+                  value={item.profit_pct}
+                  onChange={(e) => onChange(item.id, { profit_pct: e.target.value })}
+                  placeholder="e.g. 20"
+                  className="h-8 w-20 text-sm text-center border-teal-200 focus-visible:ring-teal-400 bg-white"
+                />
+              </div>
+              {suggestedSell !== null && (
+                <>
+                  <span className="text-slate-300 text-base leading-none">→</span>
+                  <span className="text-sm font-bold text-teal-700 shrink-0">{money(suggestedSell)}</span>
+                  <button
+                    type="button"
+                    onClick={() => onChange(item.id, { sell_rate: suggestedSell.toFixed(2) })}
+                    className="ml-auto sm:ml-0 bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap touch-manipulation"
+                  >
+                    Use ₹{suggestedSell.toFixed(2)} →
+                  </button>
+                </>
+              )}
+              {!item.profit_pct && (
+                <span className="text-[11px] text-teal-500/70 ml-1">Enter % to calculate sell price</span>
+              )}
             </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-600 mb-1 block">
-                Sell Rate *
-                <Tip text="Price charged to the party — appears on invoice." />
-              </label>
-              <Input
-                type="number" step="0.01"
-                value={item.sell_rate}
-                onChange={(e) => onChange(item.id, { sell_rate: e.target.value })}
-                placeholder="₹0.00"
-                className="h-9 text-sm"
-              />
-            </div>
+          )}
+
+          {/* Sell rate */}
+          <div>
+            <label className="text-xs font-semibold text-slate-600 mb-1 block">
+              Sell Rate *
+              <Tip text="Price charged to the party — appears on invoice." />
+            </label>
+            <Input
+              type="number" step="0.01"
+              value={item.sell_rate}
+              onChange={(e) => onChange(item.id, { sell_rate: e.target.value })}
+              placeholder="₹0.00"
+              className="h-9 text-sm"
+            />
           </div>
 
           {/* HSN + Discount */}
@@ -269,9 +306,24 @@ export default function AddOrderPage() {
   const mut = useMutation({
     mutationFn: createOrder,
     onSuccess: (data) => {
-      toast.success(`Order saved — ${items.length} product${items.length !== 1 ? "s" : ""}`);
+      const d = data as { id: string; party_id: string };
+      const count = items.length;
+      toast.success(`Order saved — ${count} product${count !== 1 ? "s" : ""}`, {
+        duration: 7000,
+        action: { label: "View order →", onClick: () => router.push(`/orders/${d.id}/edit`) },
+      });
       qc.invalidateQueries({ queryKey: ["orders"] });
-      router.push(`/parties/${(data as { party_id: string }).party_id}`);
+      setPartyId("");
+      setOrderDate(new Date().toISOString().slice(0, 10));
+      setOrderStatus("confirmed");
+      setBillFrom("");
+      setBillTo("");
+      setCgstRate("6");
+      setSgstRate("6");
+      setRefNum("");
+      setNotes("");
+      setShowAdvanced(false);
+      setItems([makeItem()]);
     },
     onError: (e: Error) => toast.error(e.message),
   });

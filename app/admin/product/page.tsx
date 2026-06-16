@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createProduct } from "@/lib/api";
+import { useRouter } from "next/navigation";
 import { cleanPayload } from "@/lib/utils";
 import { useForm } from "react-hook-form";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 
 function ProductForm({ onSaved }: { onSaved: () => void }) {
   const qc = useQueryClient();
+  const router = useRouter();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { register, handleSubmit, formState: { errors } } = useForm<any>({
     defaultValues: { unit_of_measure: "piece", sample_priority: false },
@@ -30,7 +32,10 @@ function ProductForm({ onSaved }: { onSaved: () => void }) {
     mutationFn: createProduct,
     onSuccess: (data) => {
       const d = data as { id: string; reactivated?: boolean };
-      toast.success(d.reactivated ? "Product restored and updated" : "Product saved");
+      toast.success(d.reactivated ? "Product restored and updated" : "Product saved", {
+        duration: 7000,
+        action: { label: "View in catalog →", onClick: () => router.push(`/products/${d.id}`) },
+      });
       qc.invalidateQueries({ queryKey: ["products"] });
       onSaved();
     },
