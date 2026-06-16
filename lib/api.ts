@@ -1,10 +1,15 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8001";
 
 async function req<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      headers: { "Content-Type": "application/json" },
+      ...options,
+    });
+  } catch {
+    throw new Error("Cannot reach the server. Please check your connection and try again.");
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     let detail: string = res.statusText || "Request failed";

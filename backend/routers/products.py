@@ -1,7 +1,10 @@
 from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from database import query, execute
+from database import query, execute, get_conn
+import psycopg2
+import psycopg2.extras
+import psycopg2.errors
 
 router = APIRouter()
 
@@ -85,23 +88,32 @@ def get_product(product_id: str):
 
 @router.post("", status_code=201)
 def create_product(body: ProductCreate):
-    row = execute(
-        """
-        INSERT INTO products (sku, product_name, product_category, unit_of_measure, preferred_brand, hindi_name, sample_priority, notes)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        RETURNING id
-        """,
-        (body.sku or None, body.product_name, body.product_category or None,
-         body.unit_of_measure, body.preferred_brand or None, body.hindi_name or None,
-         body.sample_priority, body.notes or None),
-        returning=True,
-    )
-    product_id = str(row["id"])
-    if body.alias_name:
-        execute(
-            "INSERT INTO product_aliases (product_id, alias_name) VALUES (%s, %s) ON CONFLICT (alias_name) DO NOTHING",
-            (product_id, body.alias_name),
+    try:
+        with get_conn() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute(
+                    """
+                    INSERT INTO products (sku, product_name, product_category, unit_of_measure, preferred_brand, hindi_name, sample_priority, notes)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                    """,
+                    (body.sku or None, body.product_name, body.product_category or None,
+                     body.unit_of_measure, body.preferred_brand or None, body.hindi_name or None,
+                     body.sample_priority, body.notes or None),
+                )
+                product_id = str(dict(cur.fetchone())["id"])
+                if body.alias_name:
+                    cur.execute(
+                        "INSERT INTO product_aliases (product_id, alias_name) VALUES (%s, %s) ON CONFLICT (alias_name) DO NOTHING",
+                        (product_id, body.alias_name),
+                    )
+    except psycopg2.errors.UniqueViolation:
+        raise HTTPException(
+            status_code=409,
+            detail=f'A product named "{body.product_name}" already exists. Use a different name or edit the existing one.',
         )
+    except psycopg2.Error as e:
+        raise HTTPException(status_code=422, detail=str(e).splitlines()[0])
     return {"id": product_id}
 
 
