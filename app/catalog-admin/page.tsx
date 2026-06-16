@@ -173,11 +173,11 @@ function ImageSlot({
 }
 
 // ── Add Product Form ───────────────────────────────────────────────────────
-const DEFAULT_SLOT_COUNT = 4;
-
 function AddProductForm({ onDone }: { onDone: () => void }) {
   const qc = useQueryClient();
-  const [slots, setSlots] = useState<SlotState[]>(() => makeSlots(DEFAULT_SLOT_COUNT));
+  const [step, setStep] = useState<"count" | "form">("count");
+  const [imageCount, setImageCount] = useState(4);
+  const [slots, setSlots] = useState<SlotState[]>([]);
   const [specs, setSpecs] = useState<SpecRow[]>([{ key: "", value: "" }]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -196,7 +196,10 @@ function AddProductForm({ onDone }: { onDone: () => void }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const addSlot = () => setSlots((prev) => [...prev, makeSlots(1)[0]]);
+  const handleCountConfirm = () => {
+    setSlots(makeSlots(imageCount));
+    setStep("form");
+  };
 
   const updateSlot = useCallback((idx: number, patch: Partial<SlotState>) => {
     setSlots((prev) => prev.map((s, i) => i === idx ? { ...s, ...patch } : s));
@@ -236,14 +239,58 @@ function AddProductForm({ onDone }: { onDone: () => void }) {
     });
   };
 
-  // ── Full form (no pre-step) ──────────────────────────────────────────────
+  // ── Step 1: pick image count ─────────────────────────────────────────────
+  if (step === "count") {
+    return (
+      <div className="max-w-sm mx-auto text-center py-10">
+        <div className="w-14 h-14 rounded-2xl bg-teal-50 flex items-center justify-center mx-auto mb-4">
+          <CloudUpload size={26} className="text-teal-600" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-800 mb-1">How many images?</h2>
+        <p className="text-sm text-slate-400 mb-2">Choose number of product images to upload</p>
+        <p className="text-xs text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full inline-block mb-8 font-medium">
+          ✓ Images upload directly to Cloudinary CDN
+        </p>
+
+        <div className="grid grid-cols-5 gap-2 mb-8">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setImageCount(n)}
+              className={`aspect-square rounded-xl text-lg font-bold transition-all ${
+                imageCount === n
+                  ? "bg-teal-600 text-white shadow-lg shadow-teal-500/30 scale-110"
+                  : "bg-slate-100 text-slate-500 hover:bg-teal-50 hover:text-teal-600"
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex gap-3">
+          <button type="button" onClick={onDone}
+            className="flex-1 h-11 border border-slate-200 text-slate-500 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors">
+            Cancel
+          </button>
+          <button type="button" onClick={handleCountConfirm}
+            className="flex-1 h-11 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-sm font-bold transition-colors">
+            Continue →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Step 2: full form ────────────────────────────────────────────────────
   const uploadedCount = slots.filter((s) => s.cloudUrl).length;
   const uploadingCount = slots.filter((s) => s.uploading).length;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-3xl">
       <div className="flex items-center gap-3">
-        <button type="button" onClick={onDone} className="text-slate-400 hover:text-slate-600">
+        <button type="button" onClick={() => setStep("count")} className="text-slate-400 hover:text-slate-600">
           <ArrowLeft size={18} />
         </button>
         <div>
@@ -283,16 +330,9 @@ function AddProductForm({ onDone }: { onDone: () => void }) {
           ))}
         </div>
 
-        <div className="flex items-center justify-between mt-2">
-          <p className="text-[11px] text-slate-400">First image appears on listing cards · Cloudinary CDN</p>
-          <button
-            type="button"
-            onClick={addSlot}
-            className="text-[11px] text-teal-600 hover:text-teal-800 font-semibold flex items-center gap-1"
-          >
-            <Plus size={11} /> Add slot
-          </button>
-        </div>
+        <p className="text-[11px] text-slate-400 mt-2">
+          First image appears on listing cards · Images are stored on Cloudinary CDN
+        </p>
       </div>
 
       {/* Core fields */}

@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createProduct } from "@/lib/api";
 import { cleanPayload } from "@/lib/utils";
@@ -18,28 +19,25 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
-export default function AddProductPage() {
+function ProductForm({ onSaved }: { onSaved: () => void }) {
   const qc = useQueryClient();
-  const { register, handleSubmit, reset, formState: { errors } } = useForm();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { register, handleSubmit, formState: { errors } } = useForm<any>({
+    defaultValues: { unit_of_measure: "piece", sample_priority: false },
+  });
 
   const mut = useMutation({
     mutationFn: createProduct,
     onSuccess: () => {
       toast.success("Product saved");
       qc.invalidateQueries({ queryKey: ["products"] });
-      reset();
+      onSaved();
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   return (
-    <div className="max-w-lg mx-auto md:mx-0">
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-slate-800">Add Product</h1>
-        <p className="text-slate-500 text-sm mt-0.5">उत्पाद जोड़ें · Surgical or medical item</p>
-      </div>
-
-      <form onSubmit={handleSubmit((v) => mut.mutate(cleanPayload(v as Record<string, unknown>)))} className="space-y-4">
+    <form onSubmit={handleSubmit((v) => mut.mutate(cleanPayload(v as Record<string, unknown>)))} className="space-y-4">
         <Field label="Product name *" hint="एक standard नाम — visits और orders में reuse होगा">
           <Input {...register("product_name", { required: true })} placeholder="e.g. IV Cannula 20G" />
           {errors.product_name && <p className="text-xs text-red-500 mt-0.5">Product name is required</p>}
@@ -89,6 +87,18 @@ export default function AddProductPage() {
           </Button>
         </div>
       </form>
+  );
+}
+
+export default function AddProductPage() {
+  const [formKey, setFormKey] = useState(0);
+  return (
+    <div className="max-w-lg mx-auto md:mx-0">
+      <div className="mb-6">
+        <h1 className="text-xl font-bold text-slate-800">Add Product</h1>
+        <p className="text-slate-500 text-sm mt-0.5">उत्पाद जोड़ें · Surgical or medical item</p>
+      </div>
+      <ProductForm key={formKey} onSaved={() => setFormKey((k) => k + 1)} />
     </div>
   );
 }
