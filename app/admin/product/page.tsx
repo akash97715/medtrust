@@ -44,7 +44,7 @@ function ProductForm({ onSaved }: { onSaved: () => void }) {
           {errors.product_name && <p className="text-xs text-red-500 mt-0.5">Product name is required</p>}
         </Field>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="SKU" hint="Short code e.g. IV-SET">
             <Input {...register("sku")} placeholder="IV-20G" />
           </Field>
@@ -53,7 +53,7 @@ function ProductForm({ onSaved }: { onSaved: () => void }) {
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Unit of measure" hint="piece, box, pack…">
             <Input {...register("unit_of_measure")} defaultValue="piece" />
           </Field>
@@ -62,7 +62,7 @@ function ProductForm({ onSaved }: { onSaved: () => void }) {
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Hindi name" hint="Field में जो नाम बोला जाता है">
             <Input {...register("hindi_name")} />
           </Field>

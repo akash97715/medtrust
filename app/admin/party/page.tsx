@@ -67,7 +67,7 @@ export default function AddPartyPage() {
           {errors.name && <p className="text-xs text-red-500 mt-0.5">Name is required</p>}
         </Field>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Phone" hint="WhatsApp / call नंबर">
             <Input {...register("phone")} placeholder="9934XXXXXX" />
           </Field>
@@ -76,7 +76,7 @@ export default function AddPartyPage() {
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="City *" hint="Route planning के लिए">
             <Input {...register("city", { required: true })} />
             {errors.city && <p className="text-xs text-red-500 mt-0.5">City is required</p>}
@@ -86,7 +86,7 @@ export default function AddPartyPage() {
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="State">
             <Input {...register("state")} />
           </Field>

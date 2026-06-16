@@ -147,7 +147,7 @@ function AddItemInline({ orderId, onAdded }: { orderId: string; onAdded: () => v
           {products.map((p) => <SelectItem key={p.product_id} value={p.product_id}>{p.product_name}</SelectItem>)}
         </SelectContent>
       </Select>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <Input type="number" step="0.01" value={qty} onChange={(e) => setQty(e.target.value)} placeholder="Qty *" className="h-9 text-sm" />
         <Input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="Unit" className="h-9 text-sm" />
         <Input type="number" step="0.01" value={buyRate} onChange={(e) => setBuyRate(e.target.value)} placeholder="Buy Rate" className="h-9 text-sm" />

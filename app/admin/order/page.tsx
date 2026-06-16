@@ -131,7 +131,7 @@ function ItemRow({
           </div>
 
           {/* Qty + Unit */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-semibold text-slate-600 mb-1 block">Quantity *</label>
               <Input
@@ -154,7 +154,7 @@ function ItemRow({
           </div>
 
           {/* Buy rate + Sell rate */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-semibold text-slate-600 mb-1 block">
                 Buy Rate
@@ -184,7 +184,7 @@ function ItemRow({
           </div>
 
           {/* HSN + Discount */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-semibold text-slate-600 mb-1 block">
                 HSN Code
@@ -345,7 +345,7 @@ export default function AddOrderPage() {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Order Date *</label>
               <Input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)} />
@@ -375,7 +375,7 @@ export default function AddOrderPage() {
 
           {showAdvanced && (
             <div className="space-y-3 pt-1 border-t border-slate-100">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-600 mb-1 block">Bill Period From</label>
                   <Input type="date" value={billFrom} onChange={(e) => setBillFrom(e.target.value)} />
@@ -385,7 +385,7 @@ export default function AddOrderPage() {
                   <Input type="date" value={billTo} onChange={(e) => setBillTo(e.target.value)} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-600 mb-1 block">CGST %</label>
                   <Input type="number" step="0.5" min="0" max="28" value={cgstRate} onChange={(e) => setCgstRate(e.target.value)} />
