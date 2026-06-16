@@ -1,7 +1,7 @@
 "use client";
-import { use, useEffect } from "react";
+import { use, useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getOrder, updateOrder, deleteOrder, updateOrderItem, deleteOrderItem } from "@/lib/api";
+import { getOrder, getProducts, updateOrder, deleteOrder, updateOrderItem, deleteOrderItem, addOrderItem } from "@/lib/api";
 import { useForm } from "react-hook-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Trash2, Pencil } from "lucide-react";
+import { ArrowLeft, Trash2, Pencil, Plus } from "lucide-react";
 import { money, fmt, cleanPayload } from "@/lib/utils";
 
 function EditItemRow({ item, onSaved, onDeleted }: { item: Record<string, unknown>; onSaved: () => void; onDeleted: () => void }) {
@@ -86,7 +86,84 @@ function EditItemRow({ item, onSaved, onDeleted }: { item: Record<string, unknow
   );
 }
 
-import { useState } from "react";
+type Product = { product_id: string; product_name: string };
+
+function AddItemInline({ orderId, onAdded }: { orderId: string; onAdded: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [productId, setProductId] = useState("");
+  const [qty, setQty] = useState("");
+  const [unit, setUnit] = useState("piece");
+  const [buyRate, setBuyRate] = useState("");
+  const [sellRate, setSellRate] = useState("");
+  const [hsn, setHsn] = useState("");
+  const [discount, setDiscount] = useState("0");
+
+  const { data: productsData } = useQuery({ queryKey: ["products"], queryFn: getProducts, staleTime: 0 });
+  const products = (productsData as Product[] ?? []);
+
+  const mut = useMutation({
+    mutationFn: (data: unknown) => addOrderItem(orderId, data),
+    onSuccess: () => {
+      toast.success("Product added to order");
+      setOpen(false);
+      setProductId(""); setQty(""); setSellRate(""); setBuyRate(""); setHsn(""); setDiscount("0");
+      onAdded();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const handleAdd = () => {
+    if (!productId) { toast.error("Select a product"); return; }
+    if (!qty || parseFloat(qty) <= 0) { toast.error("Enter a valid quantity"); return; }
+    if (!sellRate || parseFloat(sellRate) <= 0) { toast.error("Sell rate is required"); return; }
+    mut.mutate({
+      product_id: productId,
+      quantity: parseFloat(qty),
+      unit_of_measure: unit || "piece",
+      buy_rate: parseFloat(buyRate) || undefined,
+      sell_rate: parseFloat(sellRate),
+      hsn_code: hsn || undefined,
+      discount: parseFloat(discount) || 0,
+    });
+  };
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="w-full flex items-center justify-center gap-2 h-9 border-2 border-dashed border-slate-200 hover:border-teal-400 hover:bg-teal-50/40 text-slate-400 hover:text-teal-600 rounded-lg text-xs font-semibold transition-all"
+      >
+        <Plus size={13} /> Add Product to Order
+      </button>
+    );
+  }
+
+  return (
+    <div className="border border-teal-200 rounded-xl bg-teal-50/30 p-4 space-y-3">
+      <p className="text-xs font-bold text-teal-700 uppercase tracking-widest">Add Product</p>
+      <Select value={productId} onValueChange={(v) => v && setProductId(v)}>
+        <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select product…" /></SelectTrigger>
+        <SelectContent>
+          {products.map((p) => <SelectItem key={p.product_id} value={p.product_id}>{p.product_name}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      <div className="grid grid-cols-2 gap-2">
+        <Input type="number" step="0.01" value={qty} onChange={(e) => setQty(e.target.value)} placeholder="Qty *" className="h-9 text-sm" />
+        <Input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="Unit" className="h-9 text-sm" />
+        <Input type="number" step="0.01" value={buyRate} onChange={(e) => setBuyRate(e.target.value)} placeholder="Buy Rate" className="h-9 text-sm" />
+        <Input type="number" step="0.01" value={sellRate} onChange={(e) => setSellRate(e.target.value)} placeholder="Sell Rate *" className="h-9 text-sm" />
+        <Input value={hsn} onChange={(e) => setHsn(e.target.value)} placeholder="HSN Code" className="h-9 text-sm" />
+        <Input type="number" step="0.01" value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="Discount ₹" className="h-9 text-sm" />
+      </div>
+      <div className="flex gap-2">
+        <Button size="sm" onClick={handleAdd} disabled={mut.isPending} className="h-8 text-xs">
+          {mut.isPending ? "Saving…" : "Add to Order"}
+        </Button>
+        <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setOpen(false)}>Cancel</Button>
+      </div>
+    </div>
+  );
+}
 
 export default function EditOrderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -165,7 +242,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
 
           <Card>
             <CardHeader><CardTitle className="text-base">Line items</CardTitle></CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               {items.length === 0 ? <p className="text-slate-400 text-sm">No line items.</p> : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -188,6 +265,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
                   </table>
                 </div>
               )}
+              <AddItemInline orderId={id} onAdded={refresh} />
             </CardContent>
           </Card>
         </div>

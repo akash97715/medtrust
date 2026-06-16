@@ -103,6 +103,8 @@ export const updateOrder = (id: string, data: unknown) =>
   req(`/api/orders/${id}`, { method: "PATCH", body: JSON.stringify(data) });
 export const deleteOrder = (id: string) =>
   req(`/api/orders/${id}`, { method: "DELETE" });
+export const addOrderItem = (orderId: string, data: unknown) =>
+  req(`/api/orders/${orderId}/items`, { method: "POST", body: JSON.stringify(data) });
 export const updateOrderItem = (itemId: string, data: unknown) =>
   req(`/api/orders/items/${itemId}`, { method: "PATCH", body: JSON.stringify(data) });
 export const deleteOrderItem = (itemId: string) =>

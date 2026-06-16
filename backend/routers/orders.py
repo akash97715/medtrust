@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from database import query, execute, scalar
@@ -10,24 +10,27 @@ from database import get_conn
 router = APIRouter()
 
 
-class OrderCreate(BaseModel):
-    party_id: str
+class OrderItemInput(BaseModel):
     product_id: str
-    order_date: str
-    order_status: str = "confirmed"
-    reference_number: Optional[str] = None
-    notes: Optional[str] = None
     quantity: float
     unit_of_measure: str = "piece"
     buy_rate: Optional[float] = None
     sell_rate: Optional[float] = None
-    # Invoice fields
-    bill_period_from: Optional[str] = None
-    bill_period_to: Optional[str] = None
     hsn_code: Optional[str] = None
     discount: Optional[float] = 0
+
+
+class OrderCreate(BaseModel):
+    party_id: str
+    order_date: str
+    order_status: str = "confirmed"
+    reference_number: Optional[str] = None
+    notes: Optional[str] = None
+    bill_period_from: Optional[str] = None
+    bill_period_to: Optional[str] = None
     cgst_rate: Optional[float] = 6
     sgst_rate: Optional[float] = 6
+    items: List[OrderItemInput] = []
 
 
 class OrderUpdate(BaseModel):
@@ -114,8 +117,11 @@ def get_order(order_id: str):
 
 @router.post("", status_code=201)
 def create_order(body: OrderCreate):
-    if body.quantity <= 0:
-        raise HTTPException(status_code=422, detail="Quantity must be greater than zero")
+    if not body.items:
+        raise HTTPException(status_code=422, detail="At least one product line item is required")
+    for item in body.items:
+        if item.quantity <= 0:
+            raise HTTPException(status_code=422, detail="Quantity must be greater than zero for all items")
     try:
         with get_conn() as conn:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
@@ -131,21 +137,22 @@ def create_order(body: OrderCreate):
                      body.sgst_rate if body.sgst_rate is not None else 6),
                 )
                 order = dict(cur.fetchone())
-                cur.execute(
-                    """
-                    INSERT INTO sales_order_items (sales_order_id, product_id, quantity, unit_of_measure, buy_rate, sell_rate, hsn_code, discount)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                    """,
-                    (order["id"], body.product_id, body.quantity, body.unit_of_measure,
-                     body.buy_rate, body.sell_rate, body.hsn_code or None, body.discount or 0),
-                )
-                cur.execute(
-                    """
-                    INSERT INTO party_product_pricing (party_id, product_id, buy_rate, sell_rate, currency_code, effective_from, notes)
-                    VALUES (%s, %s, %s, %s, 'INR', %s, 'Auto-saved from order entry')
-                    """,
-                    (body.party_id, body.product_id, body.buy_rate, body.sell_rate, body.order_date),
-                )
+                for item in body.items:
+                    cur.execute(
+                        """
+                        INSERT INTO sales_order_items (sales_order_id, product_id, quantity, unit_of_measure, buy_rate, sell_rate, hsn_code, discount)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (order["id"], item.product_id, item.quantity, item.unit_of_measure,
+                         item.buy_rate, item.sell_rate, item.hsn_code or None, item.discount or 0),
+                    )
+                    cur.execute(
+                        """
+                        INSERT INTO party_product_pricing (party_id, product_id, buy_rate, sell_rate, currency_code, effective_from, notes)
+                        VALUES (%s, %s, %s, %s, 'INR', %s, 'Auto-saved from order entry')
+                        """,
+                        (body.party_id, item.product_id, item.buy_rate, item.sell_rate, body.order_date),
+                    )
     except psycopg2.errors.UniqueViolation:
         raise HTTPException(
             status_code=409,
@@ -154,6 +161,38 @@ def create_order(body: OrderCreate):
     except psycopg2.Error as e:
         raise HTTPException(status_code=422, detail=str(e).splitlines()[0])
     return {"id": str(order["id"]), "party_id": str(order["party_id"])}
+
+
+@router.post("/{order_id}/items", status_code=201)
+def add_order_item(order_id: str, body: OrderItemInput):
+    if body.quantity <= 0:
+        raise HTTPException(status_code=422, detail="Quantity must be greater than zero")
+    rows = query("SELECT party_id FROM sales_orders WHERE id = %s", (order_id,))
+    if not rows:
+        raise HTTPException(status_code=404, detail="Order not found")
+    party_id = rows[0]["party_id"]
+    try:
+        with get_conn() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute(
+                    """
+                    INSERT INTO sales_order_items (sales_order_id, product_id, quantity, unit_of_measure, buy_rate, sell_rate, hsn_code, discount)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
+                    """,
+                    (order_id, body.product_id, body.quantity, body.unit_of_measure,
+                     body.buy_rate, body.sell_rate, body.hsn_code or None, body.discount or 0),
+                )
+                item_id = dict(cur.fetchone())["id"]
+                cur.execute(
+                    """
+                    INSERT INTO party_product_pricing (party_id, product_id, buy_rate, sell_rate, currency_code, effective_from, notes)
+                    VALUES (%s, %s, %s, %s, 'INR', CURRENT_DATE, 'Auto-saved from order entry')
+                    """,
+                    (party_id, body.product_id, body.buy_rate, body.sell_rate),
+                )
+    except psycopg2.Error as e:
+        raise HTTPException(status_code=422, detail=str(e).splitlines()[0])
+    return {"id": str(item_id)}
 
 
 @router.patch("/{order_id}")
