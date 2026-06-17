@@ -16,7 +16,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Trash2, Pencil, Plus } from "lucide-react";
+import { ArrowLeft, Trash2, Pencil, Plus, AlertTriangle } from "lucide-react";
 import { money, fmt, cleanPayload } from "@/lib/utils";
 
 function EditItemRow({ item, onSaved, onDeleted }: { item: Record<string, unknown>; onSaved: () => void; onDeleted: () => void }) {
@@ -171,6 +171,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["order", id], queryFn: () => getOrder(id) });
   const { register, handleSubmit, setValue, reset, watch } = useForm();
+  const [statusWarning, setStatusWarning] = useState<{ type: "no_payments" | "partial"; detail: string } | null>(null);
 
   useEffect(() => {
     if (data) {
@@ -181,8 +182,22 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
 
   const updateMut = useMutation({
     mutationFn: (v: unknown) => updateOrder(id, v),
-    onSuccess: () => { toast.success("Order updated"); qc.removeQueries({ queryKey: ["order", id] }); qc.invalidateQueries({ queryKey: ["orders"] }); },
-    onError: (e: Error) => toast.error(e.message),
+    onSuccess: () => {
+      toast.success("Order updated");
+      setStatusWarning(null);
+      qc.removeQueries({ queryKey: ["order", id] });
+      qc.invalidateQueries({ queryKey: ["orders"] });
+    },
+    onError: (e: Error) => {
+      const msg = e.message;
+      if (msg.startsWith("NO_PAYMENTS:")) {
+        setStatusWarning({ type: "no_payments", detail: msg.replace("NO_PAYMENTS: ", "") });
+      } else if (msg.startsWith("PARTIAL_PAYMENT:")) {
+        setStatusWarning({ type: "partial", detail: msg.replace("PARTIAL_PAYMENT: ", "") });
+      } else {
+        toast.error(msg);
+      }
+    },
   });
 
   const deleteMut = useMutation({
@@ -224,6 +239,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
                         <SelectItem value="draft">Draft</SelectItem>
                         <SelectItem value="confirmed">Confirmed</SelectItem>
                         <SelectItem value="delivered">Delivered</SelectItem>
+                        <SelectItem value="partial_payment">Partial Payment</SelectItem>
                         <SelectItem value="payment_received">Payment Received</SelectItem>
                         <SelectItem value="cancelled">Cancelled</SelectItem>
                       </SelectContent>
@@ -235,7 +251,23 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
                   </div>
                 </div>
                 <div><label className="text-sm font-medium text-slate-700 block mb-1">Notes</label><Textarea {...register("notes")} rows={2} /></div>
-                <Button type="submit" disabled={updateMut.isPending}>{updateMut.isPending ? "Saving…" : "Save changes"}</Button>
+                {statusWarning && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 flex gap-2">
+                    <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-amber-800 font-medium">{statusWarning.detail}</p>
+                      <Link
+                        href={`/orders/${id}`}
+                        className="text-xs text-teal-700 underline underline-offset-2 hover:text-teal-900 mt-1 inline-block"
+                      >
+                        ← Go to Payment Tracker to record payments
+                      </Link>
+                    </div>
+                  </div>
+                )}
+                <Button type="submit" disabled={updateMut.isPending} onClick={() => setStatusWarning(null)}>
+                  {updateMut.isPending ? "Saving…" : "Save changes"}
+                </Button>
               </form>
             </CardContent>
           </Card>

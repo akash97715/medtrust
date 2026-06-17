@@ -8,13 +8,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
-import { Search, Pencil, FileText, Lock, Package } from "lucide-react";
+import { Search, Pencil, FileText, Lock, Package, Banknote } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { PinInput } from "@/components/pin-input";
 
 const STATUS_COLORS: Record<string, string> = {
   confirmed: "bg-green-100 text-green-700",
   delivered: "bg-blue-100 text-blue-700",
+  partial_payment: "bg-orange-100 text-orange-700 ring-1 ring-orange-200",
   payment_received: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300",
   draft: "bg-amber-100 text-amber-700",
   cancelled: "bg-red-100 text-red-600",
@@ -35,9 +36,15 @@ type OrderSummary = {
   reference_number: string | null;
   item_count: number;
   total_value: number;
+  total_received: number;
+  grand_total: number;
 };
 
-function groupOrders(rows: Record<string, unknown>[]): OrderSummary[] {
+function groupOrders(
+  rows: Record<string, unknown>[],
+  paymentTotals: Record<string, number>,
+  grandTotals: Record<string, number>,
+): OrderSummary[] {
   const map = new Map<string, OrderSummary>();
   for (const r of rows) {
     const id = String(r.order_id);
@@ -51,6 +58,8 @@ function groupOrders(rows: Record<string, unknown>[]): OrderSummary[] {
         reference_number: r.reference_number ? String(r.reference_number) : null,
         item_count: 0,
         total_value: 0,
+        total_received: paymentTotals[id] ?? 0,
+        grand_total: grandTotals[id] ?? 0,
       });
     }
     const entry = map.get(id)!;
@@ -79,9 +88,14 @@ export default function OrdersPage() {
   };
 
   const { data, isLoading } = useQuery({ queryKey: ["orders"], queryFn: getOrders });
-  const d = data as { rows: Record<string, unknown>[]; total_confirmed_value: number } | undefined;
+  const d = data as {
+    rows: Record<string, unknown>[];
+    total_confirmed_value: number;
+    payment_totals: Record<string, number>;
+    grand_totals: Record<string, number>;
+  } | undefined;
 
-  const orders = groupOrders(d?.rows ?? []).filter(
+  const orders = groupOrders(d?.rows ?? [], d?.payment_totals ?? {}, d?.grand_totals ?? {}).filter(
     (o) => !search ||
       o.party_name.toLowerCase().includes(search.toLowerCase()) ||
       o.order_date.includes(search) ||
@@ -117,6 +131,7 @@ export default function OrdersPage() {
                     <th className="pb-2 pr-4 font-medium">Date</th>
                     <th className="pb-2 pr-4 font-medium">Party</th>
                     <th className="pb-2 pr-4 font-medium">Status</th>
+                    <th className="pb-2 pr-4 font-medium">Payment</th>
                     <th className="pb-2 pr-4 font-medium text-center">Items</th>
                     <th className="pb-2 pr-4 font-medium text-right">Total Value</th>
                     <th className="pb-2 font-medium"></th>
@@ -146,6 +161,40 @@ export default function OrdersPage() {
                           {o.order_status.replace(/_/g, " ")}
                         </span>
                       </td>
+                      <td className="py-3 pr-4 min-w-[140px]">
+                        {o.order_status === "payment_received" ? (
+                          <span className="text-xs text-emerald-600 font-medium">✓ Fully paid</span>
+                        ) : o.order_status === "cancelled" ? (
+                          <span className="text-xs text-slate-300">—</span>
+                        ) : o.grand_total > 0 ? (
+                          <div>
+                            {o.total_received > 0 ? (
+                              <>
+                                <div className="flex items-center justify-between text-[11px] mb-1">
+                                  <span className="text-green-600 font-medium">{money(o.total_received)}</span>
+                                  <span className="text-slate-400">{money(o.grand_total - o.total_received)} left</span>
+                                </div>
+                                <div className="h-1 bg-slate-100 rounded-full overflow-hidden w-28">
+                                  <div
+                                    className="h-full bg-green-500 rounded-full"
+                                    style={{ width: `${Math.min(100, Math.round(o.total_received / o.grand_total * 100))}%` }}
+                                  />
+                                </div>
+                              </>
+                            ) : (
+                              <Link
+                                href={`/orders/${o.order_id}`}
+                                className="inline-flex items-center gap-1 text-[11px] text-teal-600 hover:text-teal-800 font-medium group"
+                              >
+                                <Banknote size={11} className="group-hover:scale-110 transition-transform" />
+                                Record payment
+                              </Link>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-300">—</span>
+                        )}
+                      </td>
                       <td className="py-3 pr-4 text-center">
                         <span className="inline-flex items-center gap-1 text-xs text-slate-500">
                           <Package size={11} />
@@ -168,7 +217,7 @@ export default function OrdersPage() {
                     </tr>
                   ))}
                   {orders.length === 0 && (
-                    <tr><td colSpan={6} className="py-8 text-center text-slate-400">No orders found.</td></tr>
+                    <tr><td colSpan={7} className="py-8 text-center text-slate-400">No orders found.</td></tr>
                   )}
                 </tbody>
               </table>

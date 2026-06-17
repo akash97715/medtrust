@@ -54,6 +54,47 @@ class OrderItemUpdate(BaseModel):
     discount: Optional[float] = None
 
 
+def _get_order_grand_total(order_id: str) -> float:
+    """Calculate the invoice-accurate grand total for an order (taxable - discount + GST)."""
+    row = query(
+        """
+        SELECT
+            (SUM(soi.quantity * COALESCE(soi.sell_rate, 0)) - SUM(COALESCE(soi.discount, 0)))
+            * (1 + COALESCE(so.cgst_rate, 6)/100.0 + COALESCE(so.sgst_rate, 6)/100.0) AS grand_total
+        FROM sales_orders so
+        JOIN sales_order_items soi ON soi.sales_order_id = so.id
+        WHERE so.id = %s
+        GROUP BY so.cgst_rate, so.sgst_rate
+        """,
+        (order_id,),
+    )
+    return float(row[0]["grand_total"] or 0) if row else 0.0
+
+
+def _sync_payment_status(order_id: str):
+    """Auto-set order status based on total payments vs grand total."""
+    grand_total = _get_order_grand_total(order_id)
+    total_received = float(scalar(
+        "SELECT COALESCE(SUM(amount), 0) FROM order_payments WHERE sales_order_id = %s",
+        (order_id,),
+    ) or 0)
+    rows = query("SELECT order_status FROM sales_orders WHERE id = %s", (order_id,))
+    if not rows:
+        return
+    current = rows[0]["order_status"]
+
+    if grand_total > 0 and total_received >= grand_total - 0.005:
+        new_status = "payment_received"
+    elif total_received > 0:
+        new_status = "partial_payment"
+    else:
+        # No payments remaining — revert from payment statuses to confirmed
+        new_status = "confirmed" if current in ("partial_payment", "payment_received") else current
+
+    if new_status != current:
+        execute("UPDATE sales_orders SET order_status = %s WHERE id = %s", (new_status, order_id))
+
+
 @router.get("")
 def list_orders():
     rows = query(
@@ -76,10 +117,32 @@ def list_orders():
         FROM sales_order_items soi
         JOIN sales_orders so ON so.id = soi.sales_order_id
         JOIN parties p ON p.id = so.party_id AND p.is_active = TRUE
-        WHERE so.order_status IN ('confirmed', 'delivered')
+        WHERE so.order_status IN ('confirmed', 'delivered', 'partial_payment')
         """
     )
-    return {"rows": rows, "total_confirmed_value": total_value}
+    # Payment totals per order for list display
+    payment_rows = query(
+        "SELECT sales_order_id::text AS order_id, COALESCE(SUM(amount), 0) AS total_received FROM order_payments GROUP BY sales_order_id"
+    )
+    payment_totals = {r["order_id"]: float(r["total_received"]) for r in payment_rows}
+    # Grand totals per order for list display
+    grand_total_rows = query(
+        """
+        SELECT so.id::text AS order_id,
+            (SUM(soi.quantity * COALESCE(soi.sell_rate, 0)) - SUM(COALESCE(soi.discount, 0)))
+            * (1 + COALESCE(so.cgst_rate, 6)/100.0 + COALESCE(so.sgst_rate, 6)/100.0) AS grand_total
+        FROM sales_orders so
+        JOIN sales_order_items soi ON soi.sales_order_id = so.id
+        GROUP BY so.id, so.cgst_rate, so.sgst_rate
+        """
+    )
+    grand_totals = {r["order_id"]: float(r["grand_total"] or 0) for r in grand_total_rows}
+    return {
+        "rows": rows,
+        "total_confirmed_value": total_value,
+        "payment_totals": payment_totals,
+        "grand_totals": grand_totals,
+    }
 
 
 @router.get("/{order_id}")
@@ -112,7 +175,86 @@ def get_order(order_id: str):
         """,
         (order_id,),
     )
-    return {**o, "items": items}
+    payments = query(
+        """
+        SELECT id, amount, payment_date, notes, created_at
+        FROM order_payments
+        WHERE sales_order_id = %s
+        ORDER BY payment_date DESC, created_at DESC
+        """,
+        (order_id,),
+    )
+    total_received = sum(float(p["amount"]) for p in payments)
+    return {**o, "items": items, "payments": payments, "total_received": total_received}
+
+
+class PaymentInput(BaseModel):
+    amount: float
+    payment_date: str
+    notes: Optional[str] = None
+
+
+@router.get("/{order_id}/payments")
+def get_payments(order_id: str):
+    rows = query("SELECT id FROM sales_orders WHERE id = %s", (order_id,))
+    if not rows:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return query(
+        """
+        SELECT id, amount, payment_date, notes, created_at
+        FROM order_payments WHERE sales_order_id = %s
+        ORDER BY payment_date DESC, created_at DESC
+        """,
+        (order_id,),
+    )
+
+
+@router.post("/{order_id}/payments", status_code=201)
+def add_payment(order_id: str, body: PaymentInput):
+    if body.amount <= 0:
+        raise HTTPException(status_code=422, detail="Amount must be greater than zero")
+    rows = query("SELECT id FROM sales_orders WHERE id = %s", (order_id,))
+    if not rows:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Enforce cap: total payments cannot exceed grand total
+    grand_total = _get_order_grand_total(order_id)
+    total_received = float(scalar(
+        "SELECT COALESCE(SUM(amount), 0) FROM order_payments WHERE sales_order_id = %s",
+        (order_id,),
+    ) or 0)
+    if grand_total > 0 and total_received + body.amount > grand_total + 0.005:
+        remaining = max(0.0, grand_total - total_received)
+        raise HTTPException(
+            status_code=422,
+            detail=f"OVERPAYMENT: Payment of ₹{body.amount:.2f} would exceed the order total of ₹{grand_total:.2f}. Maximum you can record now is ₹{remaining:.2f}.",
+        )
+
+    try:
+        result = execute(
+            """
+            INSERT INTO order_payments (sales_order_id, amount, payment_date, notes)
+            VALUES (%s, %s, %s, %s) RETURNING id
+            """,
+            (order_id, body.amount, body.payment_date, body.notes or None),
+            returning=True,
+        )
+    except psycopg2.Error as e:
+        raise HTTPException(status_code=422, detail=str(e).splitlines()[0])
+
+    _sync_payment_status(order_id)
+    return {"id": str(result["id"])}
+
+
+@router.delete("/payments/{payment_id}")
+def delete_payment(payment_id: str):
+    rows = query("SELECT sales_order_id FROM order_payments WHERE id = %s", (payment_id,))
+    if not rows:
+        return {"ok": True}  # already gone — no-op
+    order_id = str(rows[0]["sales_order_id"])
+    execute("DELETE FROM order_payments WHERE id = %s", (payment_id,))
+    _sync_payment_status(order_id)
+    return {"ok": True}
 
 
 @router.post("", status_code=201)
@@ -201,6 +343,35 @@ def update_order(order_id: str, body: OrderUpdate):
     if not rows:
         raise HTTPException(status_code=404, detail="Order not found")
     e = rows[0]
+
+    # Validate payment-related status changes
+    if body.order_status == "payment_received":
+        total_received = float(scalar(
+            "SELECT COALESCE(SUM(amount), 0) FROM order_payments WHERE sales_order_id = %s",
+            (order_id,),
+        ) or 0)
+        grand_total = _get_order_grand_total(order_id)
+        if total_received <= 0:
+            raise HTTPException(
+                status_code=422,
+                detail="NO_PAYMENTS: No payments have been recorded for this order. Please log at least one payment in the Payment Tracker before marking as Payment Received.",
+            )
+        if grand_total > 0 and total_received < grand_total - 0.005:
+            raise HTTPException(
+                status_code=422,
+                detail=f"PARTIAL_PAYMENT: Only ₹{total_received:.2f} of ₹{grand_total:.2f} has been received. Record the remaining ₹{grand_total - total_received:.2f} in the Payment Tracker first.",
+            )
+    if body.order_status == "partial_payment":
+        total_received = float(scalar(
+            "SELECT COALESCE(SUM(amount), 0) FROM order_payments WHERE sales_order_id = %s",
+            (order_id,),
+        ) or 0)
+        if total_received <= 0:
+            raise HTTPException(
+                status_code=422,
+                detail="NO_PAYMENTS: Cannot set Partial Payment status — no payments have been recorded yet. Please log a payment in the Payment Tracker first.",
+            )
+
     execute(
         """
         UPDATE sales_orders

@@ -115,5 +115,11 @@ export const updateOrderItem = (itemId: string, data: unknown) =>
 export const deleteOrderItem = (itemId: string) =>
   req(`/api/orders/items/${itemId}`, { method: "DELETE" });
 
+// Order Payments
+export const addPayment = (orderId: string, data: { amount: number; payment_date: string; notes?: string }) =>
+  req(`/api/orders/${orderId}/payments`, { method: "POST", body: JSON.stringify(data) });
+export const deletePayment = (paymentId: string) =>
+  req(`/api/orders/payments/${paymentId}`, { method: "DELETE" });
+
 // Pricing
 export const getPricing = () => req("/api/pricing");

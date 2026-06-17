@@ -16,7 +16,7 @@ import { PinInput } from "@/components/pin-input";
 
 function ProfitCard({ isLoading }: { isLoading: boolean }) {
   const { data } = useQuery({ queryKey: ["profit"], queryFn: getDashboardProfit, enabled: true });
-  const p = data as { total_profit: number; order_count: number } | undefined;
+  const p = data as { total_profit: number; order_count: number; total_collected: number; total_outstanding: number } | undefined;
   const { tryUnlock } = useAuth();
 
   const [entering, setEntering] = useState(false);
@@ -43,21 +43,31 @@ function ProfitCard({ isLoading }: { isLoading: boolean }) {
       <div className="relative z-10">
         <div className="flex items-center gap-1.5 mb-1">
           <IndianRupee size={12} className="text-emerald-100" />
-          <p className="text-xs font-bold uppercase tracking-widest text-emerald-100">Total Profit</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-emerald-100">Profit & Collections</p>
         </div>
-        <p className="text-[10px] text-emerald-200 mb-3">Payment received orders only</p>
+        <p className="text-[10px] text-emerald-200 mb-3">Proportional profit from all payments</p>
 
         {isLoading ? (
           <div className="h-8 w-32 bg-white/20 rounded animate-pulse" />
         ) : unlocked ? (
           <div>
-            <div className="flex items-end gap-2">
+            <div className="flex items-end gap-2 mb-3">
               <p className="text-3xl font-black tracking-tight">{money(p?.total_profit ?? 0)}</p>
               <button onClick={() => { setUnlocked(false); setEntering(false); }} className="mb-1 text-emerald-200 hover:text-white transition-colors">
                 <Lock size={14} />
               </button>
             </div>
-            <p className="text-xs text-emerald-200 mt-1">across {p?.order_count ?? 0} payment received order{(p?.order_count ?? 0) !== 1 ? "s" : ""}</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-white/10 rounded-lg px-3 py-2">
+                <p className="text-[10px] text-emerald-200 font-semibold uppercase tracking-wide">Collected</p>
+                <p className="text-sm font-black mt-0.5">{money(p?.total_collected ?? 0)}</p>
+              </div>
+              <div className="bg-white/10 rounded-lg px-3 py-2">
+                <p className="text-[10px] text-emerald-200 font-semibold uppercase tracking-wide">Outstanding</p>
+                <p className="text-sm font-black mt-0.5">{money(p?.total_outstanding ?? 0)}</p>
+              </div>
+            </div>
+            <p className="text-xs text-emerald-200 mt-2">{p?.order_count ?? 0} order{(p?.order_count ?? 0) !== 1 ? "s" : ""} with payments</p>
           </div>
         ) : entering ? (
           <div className="space-y-3">

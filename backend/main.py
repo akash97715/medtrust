@@ -106,6 +106,33 @@ def run_migrations():
         "ALTER TABLE sales_order_items ADD COLUMN IF NOT EXISTS discount NUMERIC(12,2) DEFAULT 0",
         "ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS cgst_rate NUMERIC(5,2) DEFAULT 6",
         "ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS sgst_rate NUMERIC(5,2) DEFAULT 6",
+        # Fix order_status constraint to include payment_received + partial_payment
+        """
+        DO $$ BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_constraint
+                WHERE conname = 'sales_orders_order_status_v3'
+                AND conrelid = 'sales_orders'::regclass
+            ) THEN
+                ALTER TABLE sales_orders DROP CONSTRAINT IF EXISTS sales_orders_order_status_check;
+                ALTER TABLE sales_orders DROP CONSTRAINT IF EXISTS sales_orders_order_status_v2;
+                ALTER TABLE sales_orders ADD CONSTRAINT sales_orders_order_status_v3
+                CHECK (order_status IN ('draft', 'confirmed', 'delivered', 'partial_payment', 'payment_received', 'cancelled'));
+            END IF;
+        END $$
+        """,
+        # Partial cash payment tracking
+        """
+        CREATE TABLE IF NOT EXISTS order_payments (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            sales_order_id UUID NOT NULL REFERENCES sales_orders(id) ON DELETE CASCADE,
+            amount NUMERIC(12,2) NOT NULL CHECK (amount > 0),
+            payment_date DATE NOT NULL DEFAULT CURRENT_DATE,
+            notes TEXT,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS idx_order_payments_order ON order_payments(sales_order_id)",
     ]
     for sql in migrations:
         execute(sql)
