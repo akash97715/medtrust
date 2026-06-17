@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { getOrders } from "@/lib/api";
 import { money } from "@/lib/utils";
@@ -8,9 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
-import { Search, Pencil, FileText, Lock, Package, Banknote } from "lucide-react";
-import { useAuth } from "@/lib/auth-context";
-import { PinInput } from "@/components/pin-input";
+import { Search, Pencil, FileText, Package, Banknote } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   confirmed: "bg-green-100 text-green-700",
@@ -70,22 +67,7 @@ function groupOrders(
 }
 
 export default function OrdersPage() {
-  const router = useRouter();
-  const { tryUnlock } = useAuth();
   const [search, setSearch] = useState("");
-  const [pendingHref, setPendingHref] = useState<string | null>(null);
-  const [error, setError] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [resetPin, setResetPin] = useState(0);
-
-  const openDialog = (href: string) => { setPendingHref(href); setError(false); setResetPin((v) => v + 1); };
-  const handleComplete = async (pin: string) => {
-    setLoading(true); setError(false);
-    const ok = await tryUnlock(pin);
-    setLoading(false);
-    if (ok) { router.push(pendingHref!); setPendingHref(null); }
-    else { setError(true); setResetPin((v) => v + 1); }
-  };
 
   const { data, isLoading } = useQuery({ queryKey: ["orders"], queryFn: getOrders });
   const d = data as {
@@ -206,12 +188,12 @@ export default function OrdersPage() {
                       </td>
                       <td className="py-3">
                         <div className="flex items-center gap-2">
-                          <button onClick={() => openDialog(`/invoices/${o.order_id}`)} className="text-slate-400 hover:text-teal-600 transition-colors" title="Generate Invoice">
+                          <Link href={`/invoices/${o.order_id}`} className="text-slate-400 hover:text-teal-600 transition-colors" title="Generate Invoice">
                             <FileText size={14} />
-                          </button>
-                          <button onClick={() => openDialog(`/orders/${o.order_id}/edit`)} className="text-slate-400 hover:text-teal-600 transition-colors" title="Edit Order">
+                          </Link>
+                          <Link href={`/orders/${o.order_id}/edit`} className="text-slate-400 hover:text-teal-600 transition-colors" title="Edit Order">
                             <Pencil size={14} />
-                          </button>
+                          </Link>
                         </div>
                       </td>
                     </tr>
@@ -226,23 +208,6 @@ export default function OrdersPage() {
         </CardContent>
       </Card>
 
-      {pendingHref && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl text-center">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-slate-100 mx-auto mb-3">
-              <Lock size={18} className="text-slate-400" />
-            </div>
-            <h2 className="font-semibold text-slate-800 mb-1">Employee Code Required</h2>
-            <p className="text-xs text-slate-400 mb-5">Enter your 5-digit employee code to continue.</p>
-            <PinInput onComplete={handleComplete} loading={loading} reset={resetPin} />
-            {loading && <p className="text-xs text-slate-400 mt-3">Verifying…</p>}
-            {error && <p className="text-xs text-red-500 mt-3 font-medium">Incorrect code. Please try again.</p>}
-            <button onClick={() => setPendingHref(null)} className="mt-4 text-sm text-slate-400 hover:text-slate-600 transition-colors">
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

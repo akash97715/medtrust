@@ -18,8 +18,9 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ArrowLeft, Trash2, Pencil, Plus, AlertTriangle } from "lucide-react";
 import { money, fmt, cleanPayload } from "@/lib/utils";
+import { useAuth } from "@/lib/auth-context";
 
-function EditItemRow({ item, onSaved, onDeleted }: { item: Record<string, unknown>; onSaved: () => void; onDeleted: () => void }) {
+function EditItemRow({ item, onSaved, onDeleted, canDelete }: { item: Record<string, unknown>; onSaved: () => void; onDeleted: () => void; canDelete: boolean }) {
   const [editing, setEditing] = useState(false);
   const { register, handleSubmit, reset } = useForm({ defaultValues: {
     quantity: item.quantity, unit_of_measure: item.unit_of_measure,
@@ -68,18 +69,20 @@ function EditItemRow({ item, onSaved, onDeleted }: { item: Record<string, unknow
       <td className="py-2">
         <div className="flex gap-2 items-center">
           <button onClick={() => setEditing(true)} className="text-slate-400 hover:text-teal-600"><Pencil size={13} /></button>
-          <AlertDialog>
-            <AlertDialogTrigger className="text-slate-300 hover:text-red-500">
-              <Trash2 size={13} />
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader><AlertDialogTitle>Remove this line item?</AlertDialogTitle></AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={() => deleteMut.mutate()} className="bg-red-600 hover:bg-red-700">Remove</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {canDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger className="text-slate-300 hover:text-red-500">
+                <Trash2 size={13} />
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader><AlertDialogTitle>Remove this line item?</AlertDialogTitle></AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => deleteMut.mutate()} className="bg-red-600 hover:bg-red-700">Remove</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </td>
     </tr>
@@ -169,6 +172,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
   const { id } = use(params);
   const router = useRouter();
   const qc = useQueryClient();
+  const { isAdmin } = useAuth();
   const { data, isLoading } = useQuery({ queryKey: ["order", id], queryFn: () => getOrder(id) });
   const { register, handleSubmit, setValue, reset, watch } = useForm();
   const [statusWarning, setStatusWarning] = useState<{ type: "no_payments" | "partial"; detail: string } | null>(null);
@@ -291,7 +295,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
                     </thead>
                     <tbody>
                       {items.map((item, i) => (
-                        <EditItemRow key={i} item={item} onSaved={refresh} onDeleted={refresh} />
+                        <EditItemRow key={i} item={item} onSaved={refresh} onDeleted={refresh} canDelete={isAdmin} />
                       ))}
                     </tbody>
                   </table>
@@ -302,29 +306,31 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
           </Card>
         </div>
 
-        <div>
-          <Card className="border-red-100">
-            <CardHeader><CardTitle className="text-base text-red-600">Delete order</CardTitle></CardHeader>
-            <CardContent>
-              <p className="text-xs text-slate-500 mb-3">Permanently deletes the order and all its line items. Consider setting status to <strong>Cancelled</strong> to preserve history instead.</p>
-              <AlertDialog>
-                <AlertDialogTrigger className="inline-flex items-center justify-center gap-1.5 w-full text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-md px-3 py-1.5 transition-colors">
-                  <Trash2 size={14} />Delete order
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete this order?</AlertDialogTitle>
-                    <AlertDialogDescription>All line items will be deleted. This cannot be undone.</AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => deleteMut.mutate()} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </CardContent>
-          </Card>
-        </div>
+        {isAdmin && (
+          <div>
+            <Card className="border-red-100">
+              <CardHeader><CardTitle className="text-base text-red-600">Delete order</CardTitle></CardHeader>
+              <CardContent>
+                <p className="text-xs text-slate-500 mb-3">Permanently deletes the order and all its line items. Consider setting status to <strong>Cancelled</strong> to preserve history instead.</p>
+                <AlertDialog>
+                  <AlertDialogTrigger className="inline-flex items-center justify-center gap-1.5 w-full text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-md px-3 py-1.5 transition-colors">
+                    <Trash2 size={14} />Delete order
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete this order?</AlertDialogTitle>
+                      <AlertDialogDescription>All line items will be deleted. This cannot be undone.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => deleteMut.mutate()} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getCatalogProducts, createCatalogProduct, deleteCatalogProduct } from "@/lib/api";
 import { toast } from "sonner";
 import Link from "next/link";
+import { useAuth } from "@/lib/auth-context";
 import {
   Plus, Trash2, ImagePlus, X, ArrowLeft, Sparkles, GripVertical,
   CheckCircle2, Loader2, Package, CloudUpload, AlertCircle,
@@ -450,6 +451,7 @@ function AddProductForm({ onDone }: { onDone: () => void }) {
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function CatalogAdminPage() {
   const qc = useQueryClient();
+  const { isAdmin } = useAuth();
   const [adding, setAdding] = useState(false);
 
   const { data, isLoading } = useQuery({
@@ -523,11 +525,13 @@ export default function CatalogAdminPage() {
                   className="text-xs border border-slate-200 hover:border-teal-300 text-slate-500 hover:text-teal-600 px-3 py-1.5 rounded-lg transition-colors">
                   Preview
                 </Link>
-                <button
-                  onClick={() => { if (confirm(`Remove "${p.name}"?`)) deleteMut.mutate(p.id); }}
-                  className="text-slate-300 hover:text-red-500 transition-colors p-1.5">
-                  <Trash2 size={15} />
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => { if (confirm(`Remove "${p.name}"?`)) deleteMut.mutate(p.id); }}
+                    className="text-slate-300 hover:text-red-500 transition-colors p-1.5">
+                    <Trash2 size={15} />
+                  </button>
+                )}
               </div>
             </div>
           ))}

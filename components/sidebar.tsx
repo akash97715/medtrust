@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 // Admin-only pages (require owner code)
-const ADMIN_HREFS = new Set(["/dashboard", "/parties", "/products", "/orders", "/pricing"]);
+const ADMIN_HREFS = new Set(["/dashboard", "/products", "/pricing"]);
 
 function LockModal({ targetHref, onClose }: { targetHref: string; onClose: () => void }) {
   const { tryUnlock, isAdmin } = useAuth();
@@ -173,6 +173,7 @@ export function Sidebar() {
                 <NavLink href="/parties" label="Parties" icon={Users} />
                 <NavLink href="/visits" label="Visits" icon={CalendarCheck} />
                 <NavLink href="/visitors" label="Visitors" icon={UserCheck} />
+                <NavLink href="/orders" label="Orders" icon={ShoppingCart} />
                 <NavLink href="/catalog-admin" label="Manage Catalog" icon={Store} />
                 <Link
                   href="/admin"
@@ -196,16 +197,14 @@ export function Sidebar() {
           <>
             <div className="mt-3 pt-3 border-t border-white/[0.06]">
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/35 px-3 pb-2">
-                Operations
+                Admin
               </p>
               <div className="space-y-px">
                 <NavLink href="/dashboard" label="Dashboard" icon={LayoutDashboard} />
                 <NavLink href="/products" label="Products" icon={Package} />
-                <NavLink href="/orders" label="Orders" icon={ShoppingCart} />
                 <NavLink href="/pricing" label="Pricing" icon={DollarSign} />
               </div>
             </div>
-
           </>
         )}
       </nav>
@@ -266,13 +265,13 @@ export function MobileNav() {
   const moreLinks = [
     ...(isStaff ? [
       { href: "/visitors", label: "Visitors", icon: UserCheck },
+      { href: "/orders", label: "Orders", icon: ShoppingCart },
       { href: "/catalog-admin", label: "Manage Catalog", icon: Store },
       { href: "/admin", label: "Add Data", icon: PlusCircle },
     ] : []),
     ...(isAdmin ? [
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/products", label: "Products", icon: Package },
-      { href: "/orders", label: "Orders", icon: ShoppingCart },
       { href: "/pricing", label: "Pricing", icon: DollarSign },
     ] : []),
   ];

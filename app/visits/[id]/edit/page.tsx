@@ -18,11 +18,13 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { fmt } from "@/lib/utils";
+import { useAuth } from "@/lib/auth-context";
 
 export default function EditVisitPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const qc = useQueryClient();
+  const { isAdmin } = useAuth();
   const { data, isLoading } = useQuery({ queryKey: ["visit", id], queryFn: () => getVisit(id) });
   const { register, handleSubmit, setValue, reset, watch } = useForm();
 
@@ -159,21 +161,23 @@ export default function EditVisitPage({ params }: { params: Promise<{ id: string
                           <td className="py-2 pr-4">{fmt(item.quantity_estimate)} {fmt(item.unit_of_measure)}</td>
                           <td className="py-2 pr-4 text-slate-500">{fmt(item.brand_preference)}</td>
                           <td className="py-2">
-                            <AlertDialog>
-                              <AlertDialogTrigger className="text-slate-300 hover:text-red-500">
-                                <Trash2 size={13} />
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Remove this item?</AlertDialogTitle>
-                                  <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => deleteItemMut.mutate(String(item.id))} className="bg-red-600 hover:bg-red-700">Remove</AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                            {isAdmin && (
+                              <AlertDialog>
+                                <AlertDialogTrigger className="text-slate-300 hover:text-red-500">
+                                  <Trash2 size={13} />
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Remove this item?</AlertDialogTitle>
+                                    <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => deleteItemMut.mutate(String(item.id))} className="bg-red-600 hover:bg-red-700">Remove</AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -185,29 +189,31 @@ export default function EditVisitPage({ params }: { params: Promise<{ id: string
           </Card>
         </div>
 
-        <div>
-          <Card className="border-red-100">
-            <CardHeader><CardTitle className="text-base text-red-600">Delete visit</CardTitle></CardHeader>
-            <CardContent>
-              <p className="text-xs text-slate-500 mb-3">Permanently removes this visit and all its requested items. Cannot be undone.</p>
-              <AlertDialog>
-                <AlertDialogTrigger className="inline-flex items-center justify-center gap-1.5 w-full text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-md px-3 py-1.5 transition-colors">
-                  <Trash2 size={14} />Delete visit
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete this visit?</AlertDialogTitle>
-                    <AlertDialogDescription>All requested items for this visit will also be deleted. This cannot be undone.</AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => deleteMut.mutate()} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </CardContent>
-          </Card>
-        </div>
+        {isAdmin && (
+          <div>
+            <Card className="border-red-100">
+              <CardHeader><CardTitle className="text-base text-red-600">Delete visit</CardTitle></CardHeader>
+              <CardContent>
+                <p className="text-xs text-slate-500 mb-3">Permanently removes this visit and all its requested items. Cannot be undone.</p>
+                <AlertDialog>
+                  <AlertDialogTrigger className="inline-flex items-center justify-center gap-1.5 w-full text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-md px-3 py-1.5 transition-colors">
+                    <Trash2 size={14} />Delete visit
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete this visit?</AlertDialogTitle>
+                      <AlertDialogDescription>All requested items for this visit will also be deleted. This cannot be undone.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => deleteMut.mutate()} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );

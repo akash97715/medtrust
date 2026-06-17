@@ -7,11 +7,10 @@ import { money, fmt } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import {
-  ArrowLeft, Pencil, FileText, Lock, Package, Calendar, Building2, Hash,
+  ArrowLeft, Pencil, FileText, Package, Calendar, Building2, Hash,
   StickyNote, IndianRupee, Banknote, Plus, Trash2, CheckCircle2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
-import { PinInput } from "@/components/pin-input";
 
 const STATUS_COLORS: Record<string, string> = {
   confirmed: "bg-green-100 text-green-700 ring-1 ring-green-200",
@@ -37,13 +36,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const { id } = use(params);
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { tryUnlock } = useAuth();
-
-  // PIN gate for edit/invoice
-  const [pendingHref, setPendingHref] = useState<string | null>(null);
-  const [pinError, setPinError] = useState(false);
-  const [pinLoading, setPinLoading] = useState(false);
-  const [resetPin, setResetPin] = useState(0);
+  const { isAdmin } = useAuth();
 
   // Payment form state
   const [addingPayment, setAddingPayment] = useState(false);
@@ -53,15 +46,6 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const [payLoading, setPayLoading] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  const openDialog = (href: string) => { setPendingHref(href); setPinError(false); setResetPin((v) => v + 1); };
-  const handlePin = async (pin: string) => {
-    setPinLoading(true); setPinError(false);
-    const ok = await tryUnlock(pin);
-    setPinLoading(false);
-    if (ok) { router.push(pendingHref!); setPendingHref(null); }
-    else { setPinError(true); setResetPin((v) => v + 1); }
-  };
 
   const { data, isLoading } = useQuery({ queryKey: ["order", id], queryFn: () => getOrder(id) });
 
@@ -149,18 +133,18 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           <p className="text-slate-500 text-sm mt-0.5">{String(o?.party_name ?? "")} · {fmtDate(o?.order_date)}</p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => openDialog(`/invoices/${id}`)}
+          <Link
+            href={`/invoices/${id}`}
             className="flex items-center gap-2 text-sm border border-slate-200 hover:border-teal-400 hover:text-teal-700 text-slate-600 px-3 py-1.5 rounded-lg transition-colors"
           >
             <FileText size={14} /> Invoice
-          </button>
-          <button
-            onClick={() => openDialog(`/orders/${id}/edit`)}
+          </Link>
+          <Link
+            href={`/orders/${id}/edit`}
             className="flex items-center gap-2 text-sm bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg transition-colors"
           >
             <Pencil size={14} /> Edit order
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -368,7 +352,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                     </p>
                   </div>
                 </div>
-                {status !== "payment_received" && (
+                {isAdmin && status !== "payment_received" && (
                   <button
                     onClick={() => handleDeletePayment(String(p.id))}
                     disabled={deletingId === String(p.id)}
@@ -486,24 +470,6 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         )}
       </div>
 
-      {/* PIN dialog */}
-      {pendingHref && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl text-center">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-slate-100 mx-auto mb-3">
-              <Lock size={18} className="text-slate-400" />
-            </div>
-            <h2 className="font-semibold text-slate-800 mb-1">Employee Code Required</h2>
-            <p className="text-xs text-slate-400 mb-5">Enter your 5-digit employee code to continue.</p>
-            <PinInput onComplete={handlePin} loading={pinLoading} reset={resetPin} />
-            {pinLoading && <p className="text-xs text-slate-400 mt-3">Verifying…</p>}
-            {pinError && <p className="text-xs text-red-500 mt-3 font-medium">Incorrect code. Please try again.</p>}
-            <button onClick={() => setPendingHref(null)} className="mt-4 text-sm text-slate-400 hover:text-slate-600 transition-colors">
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

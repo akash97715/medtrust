@@ -7,6 +7,16 @@ import { Users, Package, CalendarCheck, ShoppingCart, ChevronRight, Lock } from 
 
 const actions = [
   {
+    href: "/admin/order",
+    icon: ShoppingCart,
+    color: "bg-amber-50 text-amber-600",
+    border: "border-amber-100",
+    title: "Add Order",
+    hindi: "ऑर्डर जोड़ें",
+    desc: "Capture a confirmed order with quantity, buy rate and sell rate.",
+    adminOnly: false,
+  },
+  {
     href: "/admin/party",
     icon: Users,
     color: "bg-blue-50 text-blue-600",
@@ -14,17 +24,7 @@ const actions = [
     title: "Add Party",
     hindi: "पार्टी जोड़ें",
     desc: "Register a hospital, agency or clinic as a buyer in your area.",
-    adminOnly: true,
-  },
-  {
-    href: "/admin/product",
-    icon: Package,
-    color: "bg-teal-50 text-teal-600",
-    border: "border-teal-100",
-    title: "Add Product",
-    hindi: "उत्पाद जोड़ें",
-    desc: "Add a surgical or medical item to the master product list.",
-    adminOnly: true,
+    adminOnly: false,
   },
   {
     href: "/admin/visit",
@@ -34,16 +34,16 @@ const actions = [
     title: "Log Visit",
     hindi: "विज़िट दर्ज करें",
     desc: "Record a field visit — who you met, what was needed.",
-    public: true,
+    adminOnly: false,
   },
   {
-    href: "/admin/order",
-    icon: ShoppingCart,
-    color: "bg-amber-50 text-amber-600",
-    border: "border-amber-100",
-    title: "Add Order",
-    hindi: "ऑर्डर जोड़ें",
-    desc: "Capture a confirmed order with quantity, buy rate and sell rate.",
+    href: "/admin/product",
+    icon: Package,
+    color: "bg-teal-50 text-teal-600",
+    border: "border-teal-100",
+    title: "Add Product",
+    hindi: "उत्पाद जोड़ें",
+    desc: "Add a surgical or medical item to the master product list.",
     adminOnly: true,
   },
 ];
@@ -84,10 +84,10 @@ export default function AdminPage() {
       </div>
 
       <div className="flex flex-col gap-3">
-        {actions.filter((a) => !a.adminOnly || isAdmin).map(({ href, icon: Icon, color, border, title, hindi, desc, public: isPublic }) => (
+        {actions.filter((a) => !a.adminOnly || isAdmin).map(({ href, icon: Icon, color, border, title, hindi, desc, adminOnly }) => (
           <button
             key={href}
-            onClick={() => isPublic ? router.push(href) : openDialog(href)}
+            onClick={() => (adminOnly && !isAdmin) ? openDialog(href) : router.push(href)}
             className={`flex items-center gap-4 p-4 bg-white rounded-xl border ${border} hover:shadow-md active:scale-[0.98] transition-all text-left w-full`}
           >
             <div className={`flex items-center justify-center w-11 h-11 rounded-xl ${color} shrink-0`}>
