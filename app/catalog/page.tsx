@@ -43,10 +43,10 @@ function ProductCard({ p }: { p: CatalogProduct }) {
   return (
     <Link
       href={`/catalog/${p.id}`}
-      className="group block bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl hover:border-teal-200 hover:-translate-y-0.5 transition-all duration-200 overflow-hidden"
+      className="group flex flex-col bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl hover:border-teal-200 hover:-translate-y-0.5 transition-all duration-200 overflow-hidden"
     >
       {/* Image */}
-      <div className="relative h-48 overflow-hidden">
+      <div className="relative h-48 overflow-hidden shrink-0">
         {p.primary_image ? (
           <img
             src={p.primary_image}
@@ -77,8 +77,8 @@ function ProductCard({ p }: { p: CatalogProduct }) {
         )}
       </div>
 
-      {/* Info */}
-      <div className="p-4">
+      {/* Info — flex-col so button is always pushed to the bottom */}
+      <div className="p-4 flex flex-col flex-1">
         <h3 className="font-bold text-slate-800 text-sm leading-snug line-clamp-2 mb-1.5 group-hover:text-teal-700 transition-colors">
           {p.name}
         </h3>
@@ -87,14 +87,17 @@ function ProductCard({ p }: { p: CatalogProduct }) {
 
         <p className="text-xs text-slate-500 line-clamp-2 mb-3 leading-relaxed">{p.description}</p>
 
-        {/* Delivery */}
-        <div className="flex items-center gap-1.5 text-[10px] text-emerald-700 bg-emerald-50 rounded-lg px-2.5 py-1.5 mb-3 w-fit">
+        {/* Delivery badge */}
+        <div className="flex items-center gap-1.5 text-[10px] text-emerald-700 bg-emerald-50 rounded-lg px-2.5 py-1.5 w-fit">
           <Zap size={10} className="fill-emerald-600 text-emerald-600" />
           <span className="font-semibold">Swift delivery guaranteed</span>
         </div>
 
-        <div className="h-8 flex items-center justify-center bg-teal-600 group-hover:bg-teal-700 text-white text-xs font-semibold rounded-lg transition-colors">
-          View Details →
+        {/* Button pinned to the bottom of every card */}
+        <div className="mt-auto pt-3">
+          <div className="h-9 flex items-center justify-center bg-teal-600 group-hover:bg-teal-700 text-white text-xs font-semibold rounded-lg transition-colors">
+            View Details →
+          </div>
         </div>
       </div>
     </Link>

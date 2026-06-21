@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getCatalogProduct, createEnquiry } from "@/lib/api";
 import Link from "next/link";
 import {
-  ArrowLeft, Zap, Package, BadgeCheck, ChevronRight,
+  Zap, Package, BadgeCheck,
   Phone, X, CheckCircle2, Loader2, PhoneCall, MessageCircle,
 } from "lucide-react";
 
@@ -235,18 +235,6 @@ export default function CatalogDetailPage({ params }: { params: Promise<{ id: st
   return (
     <>
       <div className="max-w-5xl space-y-6 pb-10">
-
-        {/* ── Back navigation option 1: Breadcrumb ── */}
-        <nav className="flex items-center gap-1.5 text-xs text-slate-400">
-          <Link
-            href="/catalog"
-            className="hover:text-teal-600 flex items-center gap-1 transition-colors font-medium"
-          >
-            <ArrowLeft size={12} /> Product Catalog
-          </Link>
-          <ChevronRight size={12} />
-          <span className="text-slate-600 font-medium truncate max-w-[200px] sm:max-w-xs">{p.name}</span>
-        </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-8 items-start">
           {/* LEFT — Gallery */}

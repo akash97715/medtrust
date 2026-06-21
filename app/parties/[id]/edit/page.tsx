@@ -13,7 +13,6 @@ import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft } from "lucide-react";
 
 export default function EditPartyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -50,9 +49,6 @@ export default function EditPartyPage({ params }: { params: Promise<{ id: string
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <Link href={`/parties/${id}`} className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 mb-2">
-          <ArrowLeft size={14} /> Back
-        </Link>
         <h1 className="text-2xl font-bold text-slate-800">Edit Party</h1>
       </div>
       <Card>

@@ -113,7 +113,7 @@ export function Sidebar() {
     <aside className="hidden md:flex flex-col w-60 min-h-screen fixed top-0 left-0 z-30 bg-[#0b1120] border-r border-white/[0.06]">
 
       {/* Logo */}
-      <Link href="/" className="flex items-center gap-3 px-5 h-16 border-b border-white/[0.06] shrink-0 hover:bg-white/[0.03] transition-colors">
+      <Link href="/" title="Go to home" className="flex items-center gap-3 px-5 h-16 border-b border-white/[0.06] shrink-0 hover:bg-white/[0.03] transition-colors">
         <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-teal-500 shadow-lg shadow-teal-500/40 shrink-0">
           <span className="text-white font-black text-sm">M</span>
         </div>

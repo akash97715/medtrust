@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil, Trash2, Lock } from "lucide-react";
+import { Pencil, Trash2, Lock } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { PinInput } from "@/components/pin-input";
 
@@ -126,9 +126,6 @@ export default function PartyDetailPage({ params }: { params: Promise<{ id: stri
     <div className="space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <button onClick={() => router.back()} className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 mb-2">
-            <ArrowLeft size={14} /> Back
-          </button>
           <h1 className="text-2xl font-bold text-slate-800">{fmt(p?.party_name)}</h1>
           <p className="text-slate-500 text-sm mt-1 capitalize">{fmt(p?.party_type)} · {fmt(p?.city)}, {fmt(p?.district)}</p>
         </div>

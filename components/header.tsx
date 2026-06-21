@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 const SECTION_LABELS: Record<string, string> = {
-  "": "Dashboard",
+  "": "Home",
   dashboard: "Dashboard",
   parties: "Parties",
   products: "Products",
@@ -13,13 +13,17 @@ const SECTION_LABELS: Record<string, string> = {
   pricing: "Pricing",
   admin: "Add Data",
   company: "Company",
+  catalog: "Catalog",
+  "catalog-admin": "Manage Catalog",
+  invoices: "Orders",
 };
 
-const ADMIN_SUB_LABELS: Record<string, string> = {
+const SUB_LABELS: Record<string, string> = {
   party: "Add Party",
   product: "Add Product",
   visit: "Log Visit",
   order: "Add Order",
+  edit: "Edit",
 };
 
 export function Header() {
@@ -28,67 +32,42 @@ export function Header() {
 
   const segments = pathname.split("/").filter(Boolean);
   const section = segments[0] ?? "";
-  const sectionLabel = SECTION_LABELS[section] ?? "MedTrust";
+  const sectionLabel = SECTION_LABELS[section] ?? "Back";
   const isSubPage = segments.length >= 2;
-  const parentHref = section ? `/${section}` : "/";
 
   const lastSeg = segments[segments.length - 1];
-  const subLabel =
-    section === "admin" && ADMIN_SUB_LABELS[lastSeg]
-      ? ADMIN_SUB_LABELS[lastSeg]
-      : lastSeg === "edit"
-      ? "Edit"
-      : "Details";
+  const subLabel = SUB_LABELS[lastSeg] ?? "Details";
 
   return (
-    <header className="sticky top-0 z-20 bg-[#0c1220] border-b border-white/5 h-16 flex items-center px-4 md:px-8 shrink-0">
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        {/* Mobile logo */}
-        <Link href="/" className="md:hidden flex items-center gap-2 mr-1">
-          <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-teal-500 shadow-sm shadow-teal-500/30 shrink-0">
-            <span className="text-white font-black text-xs">M</span>
-          </div>
-          <div>
-            <p className="font-bold text-[14px] text-white tracking-tight leading-none">MedTrust</p>
-            <p className="text-[8px] text-white/30 font-semibold tracking-[0.06em] mt-0.5">Reliable · Rapid · Cost-Optimal</p>
-          </div>
-        </Link>
+    <header className="sticky top-0 z-20 bg-[#0c1220] border-b border-white/5 h-14 flex items-center px-4 md:px-8 shrink-0 gap-3">
 
-        {/* Back button — prominent on mobile */}
-        {isSubPage && (
+      {/* MedTrust home button — mobile only (sidebar shows it on desktop) */}
+      <Link
+        href="/"
+        title="Go to home"
+        className="md:hidden flex items-center justify-center w-8 h-8 rounded-lg bg-teal-500 hover:bg-teal-400 shadow-sm shadow-teal-500/40 transition-all active:scale-95 shrink-0"
+      >
+        <span className="text-white font-black text-sm">M</span>
+      </Link>
+
+      {/* Divider — mobile only */}
+      <span className="md:hidden text-white/10 select-none">|</span>
+
+      {isSubPage ? (
+        <>
+          {/* Back button — prominent pill, always shows parent label */}
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-1.5 text-sm font-medium text-white/50 hover:text-white transition-colors px-2 py-1.5 rounded-lg hover:bg-white/8 -ml-1"
+            className="flex items-center gap-2 text-sm font-semibold text-white/85 hover:text-white bg-white/[0.07] hover:bg-white/[0.13] border border-white/[0.12] px-3 py-1.5 rounded-xl transition-all active:scale-95 shrink-0"
           >
             <ArrowLeft size={15} />
-            <span className="hidden sm:inline">
-              {SECTION_LABELS[section] ?? "Back"}
-            </span>
+            {sectionLabel}
           </button>
-        )}
-
-        {/* Breadcrumb / title */}
-        <div className="flex items-center gap-2 min-w-0">
-          {isSubPage ? (
-            <>
-              <span className="hidden sm:inline text-white/20">/</span>
-              <span className="text-white/80 font-semibold text-sm truncate">{subLabel}</span>
-            </>
-          ) : (
-            <span className="hidden md:block font-semibold text-white/80 text-sm">{sectionLabel}</span>
-          )}
-        </div>
-      </div>
-
-      {/* Right: breadcrumb path on desktop */}
-      {isSubPage && (
-        <div className="hidden md:flex items-center gap-1.5 text-xs text-white/30">
-          <Link href={parentHref} className="hover:text-teal-400 transition-colors font-medium">
-            {SECTION_LABELS[section]}
-          </Link>
-          <span>/</span>
-          <span className="text-white/60 font-medium">{subLabel}</span>
-        </div>
+          <span className="text-white/20">/</span>
+          <span className="text-white/60 font-medium text-sm truncate">{subLabel}</span>
+        </>
+      ) : (
+        <span className="font-semibold text-white/70 text-sm">{sectionLabel}</span>
       )}
     </header>
   );

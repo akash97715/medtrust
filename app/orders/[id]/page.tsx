@@ -1,13 +1,12 @@
 "use client";
 import { use, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { getOrder, addPayment, deletePayment } from "@/lib/api";
 import { money, fmt } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import {
-  ArrowLeft, Pencil, FileText, Package, Calendar, Building2, Hash,
+  Pencil, FileText, Package, Calendar, Building2, Hash,
   StickyNote, IndianRupee, Banknote, Plus, Trash2, CheckCircle2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
@@ -34,7 +33,6 @@ function todayStr() {
 
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const router = useRouter();
   const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
 
@@ -123,12 +121,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="max-w-4xl space-y-6 pb-10">
 
-      {/* Back + actions */}
+      {/* Page header + actions */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <button onClick={() => router.back()} className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1 mb-2">
-            <ArrowLeft size={14} /> Back
-          </button>
           <h1 className="text-2xl font-bold text-slate-800">Order Details</h1>
           <p className="text-slate-500 text-sm mt-0.5">{String(o?.party_name ?? "")} · {fmtDate(o?.order_date)}</p>
         </div>
