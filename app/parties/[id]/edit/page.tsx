@@ -1,63 +1,98 @@
 "use client";
-import { use, useEffect } from "react";
+import { use } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getParty, updateParty } from "@/lib/api";
 import { cleanPayload } from "@/lib/utils";
-import { useForm } from "react-hook-form";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useForm, Controller } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { ArrowLeft } from "lucide-react";
 
-export default function EditPartyPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-sm font-medium text-slate-700">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+type PartyFormValues = {
+  party_type: string;
+  name: string;
+  phone: string;
+  contact_person: string;
+  address_line: string;
+  city: string;
+  district: string;
+  state: string;
+  distance_from_base_km: string | number;
+  notes: string;
+};
+
+function EditForm({ party, id }: { party: Record<string, unknown>; id: string }) {
   const router = useRouter();
   const qc = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["party", id], queryFn: () => getParty(id), staleTime: 0, refetchOnMount: "always" });
-  const { register, handleSubmit, setValue, reset } = useForm();
 
-  useEffect(() => {
-    if (data) {
-      const p = data as Record<string, unknown>;
-      reset({
-        name: p.party_name, phone: p.phone ?? "", contact_person: p.contact_person ?? "",
-        address_line: p.address_line ?? "", notes: p.notes ?? "",
-        city: p.city, district: p.district ?? "", state: p.state ?? "Bihar",
-        distance_from_base_km: p.distance_from_base_km ?? "",
-        base_reference: p.base_reference ?? "", party_type: p.party_type,
-      });
-    }
-  }, [data, reset]);
+  const { register, handleSubmit, control } = useForm<PartyFormValues>({
+    defaultValues: {
+      party_type: String(party.party_type ?? "hospital"),
+      name: String(party.party_name ?? ""),
+      phone: String(party.phone ?? ""),
+      contact_person: String(party.contact_person ?? ""),
+      address_line: String(party.address_line ?? ""),
+      city: String(party.city ?? ""),
+      district: String(party.district ?? ""),
+      state: String(party.state ?? "Bihar"),
+      distance_from_base_km: (party.distance_from_base_km as string | number) ?? "",
+      notes: String(party.notes ?? ""),
+    },
+  });
 
   const mutation = useMutation({
     mutationFn: (values: unknown) => updateParty(id, values),
     onSuccess: () => {
       toast.success("Party updated");
-      qc.clear(); // wipe entire cache so detail page always fetches fresh
+      qc.clear();
       router.push(`/parties/${id}`);
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  if (isLoading) return <div className="space-y-4">{Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>;
-
   return (
-    <div className="space-y-6 max-w-2xl">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">Edit Party</h1>
+    <div className="max-w-xl space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors"
+        >
+          <ArrowLeft size={16} />
+        </button>
+        <div>
+          <h1 className="text-xl font-semibold text-slate-800">{String(party.party_name ?? "")}</h1>
+          <p className="text-xs text-slate-400 mt-0.5">Edit party details</p>
+        </div>
       </div>
-      <Card>
-        <CardContent className="pt-6">
-          <form onSubmit={handleSubmit((v) => mutation.mutate(cleanPayload(v as Record<string, unknown>)))} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">Party type</label>
-                <Select onValueChange={(v) => setValue("party_type", v)} defaultValue={String((data as Record<string, unknown>)?.party_type ?? "hospital")}>
+
+      <form
+        onSubmit={handleSubmit((v) => mutation.mutate(cleanPayload(v as Record<string, unknown>)))}
+        className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100"
+      >
+        {/* Identity */}
+        <div className="p-5 space-y-4">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Identity</p>
+          <Field label="Party type">
+            <Controller
+              name="party_type"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="hospital">Hospital</SelectItem>
@@ -66,57 +101,83 @@ export default function EditPartyPage({ params }: { params: Promise<{ id: string
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">Name *</label>
-                <Input {...register("name", { required: true })} />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">Phone</label>
-                <Input {...register("phone")} />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">Contact person</label>
-                <Input {...register("contact_person")} />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">City *</label>
-                <Input {...register("city", { required: true })} />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">District</label>
-                <Input {...register("district")} />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">State</label>
-                <Input {...register("state")} />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">Distance from base (km)</label>
-                <Input type="number" step="0.01" {...register("distance_from_base_km")} />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">Base reference</label>
-                <Input {...register("base_reference")} />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700 block mb-1">Address line</label>
-                <Input {...register("address_line")} />
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700 block mb-1">Notes</label>
-              <Textarea {...register("notes")} rows={3} />
-            </div>
-            <div className="flex gap-3 pt-2">
-              <Button type="submit" disabled={mutation.isPending}>
-                {mutation.isPending ? "Saving…" : "Save changes"}
-              </Button>
-              <Link href={`/parties/${id}`}><Button type="button" variant="outline">Cancel</Button></Link>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+              )}
+            />
+          </Field>
+          <Field label="Name *">
+            <Input {...register("name", { required: true })} />
+          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Phone">
+              <Input {...register("phone")} placeholder="—" />
+            </Field>
+            <Field label="Contact person">
+              <Input {...register("contact_person")} placeholder="—" />
+            </Field>
+          </div>
+          <Field label="Address">
+            <Input {...register("address_line")} placeholder="—" />
+          </Field>
+        </div>
+
+        {/* Location */}
+        <div className="p-5 space-y-4">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Location</p>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="City *">
+              <Input {...register("city", { required: true })} />
+            </Field>
+            <Field label="District">
+              <Input {...register("district")} placeholder="—" />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="State">
+              <Input {...register("state")} />
+            </Field>
+            <Field label="Distance from base (km)">
+              <Input type="number" step="0.01" {...register("distance_from_base_km")} placeholder="—" />
+            </Field>
+          </div>
+        </div>
+
+        {/* Notes */}
+        <div className="p-5 space-y-4">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Notes</p>
+          <Textarea {...register("notes")} rows={3} placeholder="Any additional notes…" />
+        </div>
+
+        {/* Actions */}
+        <div className="p-5 flex gap-3">
+          <Button type="submit" disabled={mutation.isPending} className="bg-teal-600 hover:bg-teal-700">
+            {mutation.isPending ? "Saving…" : "Save changes"}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => router.back()}>
+            Cancel
+          </Button>
+        </div>
+      </form>
     </div>
   );
+}
+
+export default function EditPartyPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const { data, isLoading } = useQuery({
+    queryKey: ["party", id],
+    queryFn: () => getParty(id),
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+
+  if (isLoading || !data) {
+    return (
+      <div className="max-w-xl space-y-4">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-96" />
+      </div>
+    );
+  }
+
+  return <EditForm party={data as Record<string, unknown>} id={id} />;
 }
