@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { getProducts } from "@/lib/api";
-import { money, fmt } from "@/lib/utils";
+import { fmt } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -62,12 +62,8 @@ export default function ProductsPage() {
                 <thead>
                   <tr className="border-b text-slate-500 text-left">
                     <th className="pb-2 pr-4 font-medium">Product</th>
-                    <th className="pb-2 pr-4 font-medium">SKU</th>
                     <th className="pb-2 pr-4 font-medium">Category</th>
                     <th className="pb-2 pr-4 font-medium">Unit</th>
-                    <th className="pb-2 pr-4 font-medium text-right">Visit Requests</th>
-                    <th className="pb-2 pr-4 font-medium text-right">Ordered Qty</th>
-                    <th className="pb-2 pr-4 font-medium text-right">Order Value</th>
                     <th className="pb-2 font-medium"></th>
                   </tr>
                 </thead>
@@ -78,12 +74,8 @@ export default function ProductsPage() {
                         {fmt(r.product_name)}
                         {!!r.sample_priority && <span className="ml-1.5 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">sample</span>}
                       </td>
-                      <td className="py-2 pr-4 text-slate-500">{fmt(r.sku)}</td>
                       <td className="py-2 pr-4 text-slate-500">{fmt(r.product_category)}</td>
                       <td className="py-2 pr-4 text-slate-500">{fmt(r.unit_of_measure)}</td>
-                      <td className="py-2 pr-4 text-right">{fmt(r.times_requested_in_visits)}</td>
-                      <td className="py-2 pr-4 text-right">{fmt(r.ordered_quantity)}</td>
-                      <td className="py-2 pr-4 text-right font-medium text-teal-700">{money(r.ordered_value as number)}</td>
                       <td className="py-2">
                         <button onClick={() => openDialog(`/products/${r.product_id}/edit`)} className="text-slate-400 hover:text-teal-600">
                           <Pencil size={14} />
@@ -92,7 +84,7 @@ export default function ProductsPage() {
                     </tr>
                   ))}
                   {rows.length === 0 && (
-                    <tr><td colSpan={8} className="py-8 text-center text-slate-400">No products found.</td></tr>
+                    <tr><td colSpan={4} className="py-8 text-center text-slate-400">No products found.</td></tr>
                   )}
                 </tbody>
               </table>

@@ -20,17 +20,20 @@ function requiredRole(pathname: string): "staff" | "admin" | null {
 
 function FullPageLock({ level }: { level: "staff" | "admin" }) {
   const { tryUnlock } = useAuth();
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<"invalid" | "insufficient" | null>(null);
   const [loading, setLoading] = useState(false);
   const [resetPin, setResetPin] = useState(0);
 
   const handleComplete = async (pin: string) => {
     setLoading(true);
-    setError(false);
-    const ok = await tryUnlock(pin);
+    setError(null);
+    const granted = await tryUnlock(pin);
     setLoading(false);
-    if (!ok) {
-      setError(true);
+    if (!granted) {
+      setError("invalid");
+      setResetPin((v) => v + 1);
+    } else if (level === "admin" && granted !== "admin") {
+      setError("insufficient");
       setResetPin((v) => v + 1);
     }
   };
@@ -54,7 +57,8 @@ function FullPageLock({ level }: { level: "staff" | "admin" }) {
         </p>
         <PinInput onComplete={handleComplete} loading={loading} reset={resetPin} />
         {loading && <p className="text-xs text-slate-400 mt-4">Verifying…</p>}
-        {error && <p className="text-xs text-red-500 font-medium mt-4">Incorrect code. Please try again.</p>}
+        {error === "invalid" && <p className="text-xs text-red-500 font-medium mt-4">Incorrect code. Please try again.</p>}
+        {error === "insufficient" && <p className="text-xs text-amber-600 font-medium mt-4">That's a staff code. This section needs the owner code.</p>}
       </div>
     </div>
   );

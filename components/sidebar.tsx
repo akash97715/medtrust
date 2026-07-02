@@ -17,7 +17,7 @@ const ADMIN_HREFS = new Set(["/dashboard", "/products", "/pricing"]);
 function LockModal({ targetHref, onClose }: { targetHref: string; onClose: () => void }) {
   const { tryUnlock, isAdmin } = useAuth();
   const router = useRouter();
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<"invalid" | "insufficient" | null>(null);
   const [loading, setLoading] = useState(false);
   const [resetPin, setResetPin] = useState(0);
 
@@ -25,18 +25,18 @@ function LockModal({ targetHref, onClose }: { targetHref: string; onClose: () =>
 
   const handleComplete = async (pin: string) => {
     setLoading(true);
-    setError(false);
-    const ok = await tryUnlock(pin);
+    setError(null);
+    const granted = await tryUnlock(pin);
     setLoading(false);
-    if (ok) {
-      // Only navigate if the role now satisfies the requirement
-      const { isAdmin: nowAdmin, isStaff: nowStaff } = { isAdmin: ok && true, isStaff: ok && true };
-      // tryUnlock updates context; just close and push
+    if (!granted) {
+      setError("invalid");
+      setResetPin((v) => v + 1);
+    } else if (needsAdmin && granted !== "admin") {
+      setError("insufficient");
+      setResetPin((v) => v + 1);
+    } else {
       onClose();
       router.push(targetHref);
-    } else {
-      setError(true);
-      setResetPin((v) => v + 1);
     }
   };
 
@@ -63,7 +63,8 @@ function LockModal({ targetHref, onClose }: { targetHref: string; onClose: () =>
         </p>
         <PinInput dark onComplete={handleComplete} loading={loading} reset={resetPin} />
         {loading && <p className="text-white/40 text-xs mt-3 text-center">Verifying…</p>}
-        {error && <p className="text-red-400 text-xs mt-3 text-center font-medium">Incorrect code. Try again.</p>}
+        {error === "invalid" && <p className="text-red-400 text-xs mt-3 text-center font-medium">Incorrect code. Try again.</p>}
+        {error === "insufficient" && <p className="text-amber-400 text-xs mt-3 text-center font-medium">That's a staff code. Enter the owner code for this section.</p>}
         <button onClick={onClose} className="w-full mt-4 text-sm text-white/30 hover:text-white/60 transition-colors">
           Cancel
         </button>

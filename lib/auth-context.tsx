@@ -10,14 +10,14 @@ interface AuthContextType {
   role: Role;
   isStaff: boolean;  // staff OR owner
   isAdmin: boolean;  // owner only
-  tryUnlock: (code: string) => Promise<boolean>;
+  tryUnlock: (code: string) => Promise<Role | null>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   role: "public",
   isStaff: false,
   isAdmin: false,
-  tryUnlock: async () => false,
+  tryUnlock: async () => null,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -30,17 +30,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const tryUnlock = useCallback(async (code: string) => {
+  const tryUnlock = useCallback(async (code: string): Promise<Role | null> => {
     try {
       const { valid, role: r } = await verifyCode(code);
       if (valid && (r === "staff" || r === "admin")) {
-        sessionStorage.setItem(SESSION_KEY, r);
-        setRole(r);
-        return true;
+        const granted = r as Role;
+        sessionStorage.setItem(SESSION_KEY, granted);
+        setRole(granted);
+        return granted;
       }
-      return false;
+      return null;
     } catch {
-      return false;
+      return null;
     }
   }, []);
 
