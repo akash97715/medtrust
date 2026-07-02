@@ -1,4 +1,6 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+// In production, NEXT_PUBLIC_API_URL is empty → relative /api/* hits Next.js rewrites → proxied to Railway.
+// In local dev, .env.local sets it to http://localhost:8001 to hit the local backend directly.
+const BASE = process.env.NEXT_PUBLIC_API_URL || "";
 
 async function req<T>(path: string, options?: RequestInit): Promise<T> {
   let res: Response;

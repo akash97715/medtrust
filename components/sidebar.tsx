@@ -220,9 +220,9 @@ export function Sidebar() {
           {!isStaff && (
             <button
               onClick={() => setLockModal("/visitors")}
-              className="flex items-center gap-1.5 text-[10px] text-white/25 hover:text-white/55 transition-colors font-medium"
+              className="flex items-center gap-2 text-xs text-white/50 hover:text-white/80 hover:bg-white/[0.06] transition-colors font-medium px-2 py-1.5 rounded-lg w-full"
             >
-              <Lock size={9} /> Staff access
+              <Lock size={11} /> Staff login
             </button>
           )}
           {isStaff && !isAdmin && (
