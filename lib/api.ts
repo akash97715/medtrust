@@ -1,6 +1,6 @@
-// In production, NEXT_PUBLIC_API_URL is empty → relative /api/* hits Next.js rewrites → proxied to Railway.
-// In local dev, .env.local sets it to http://localhost:8001 to hit the local backend directly.
-const BASE = process.env.NEXT_PUBLIC_API_URL || "";
+// In production: empty BASE → relative /api/* URLs → caught by Next.js rewrite → proxied to Railway.
+// In development: hit local backend directly.
+const BASE = process.env.NODE_ENV === "development" ? "http://localhost:8001" : "";
 
 async function req<T>(path: string, options?: RequestInit): Promise<T> {
   let res: Response;
