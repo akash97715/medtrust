@@ -151,20 +151,10 @@ def run_migrations():
         )
         """,
         "CREATE INDEX IF NOT EXISTS idx_stock_adj_product ON stock_adjustments(product_id, created_at DESC)",
-        # Allow multiple orders per party per date — drop the unique constraint if it exists
-        """
-        DO $$
-        DECLARE cname TEXT;
-        BEGIN
-            SELECT conname INTO cname
-            FROM pg_constraint
-            WHERE conrelid = 'sales_orders'::regclass AND contype = 'u'
-            LIMIT 1;
-            IF cname IS NOT NULL THEN
-                EXECUTE format('ALTER TABLE sales_orders DROP CONSTRAINT %I', cname);
-            END IF;
-        END $$
-        """,
+        # Allow multiple orders per party per date — try the most common auto-generated constraint names
+        "ALTER TABLE sales_orders DROP CONSTRAINT IF EXISTS sales_orders_party_id_order_date_key",
+        "ALTER TABLE sales_orders DROP CONSTRAINT IF EXISTS uq_sales_orders_party_date",
+        "ALTER TABLE sales_orders DROP CONSTRAINT IF EXISTS sales_orders_party_date_unique",
     ]
     for sql in migrations:
         execute(sql)
