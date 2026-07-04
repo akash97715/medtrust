@@ -169,13 +169,25 @@ function ProductsContent() {
   const rows = (rawStock as StockRow[] | undefined) ?? [];
   const history = (historyRaw as HistoryRow[] | undefined) ?? [];
 
-  const filtered = useMemo(() =>
-    rows.filter(r =>
-      !search ||
-      r.product_name.toLowerCase().includes(search.toLowerCase()) ||
-      (r.hindi_name ?? "").includes(search) ||
-      (r.product_category ?? "").toLowerCase().includes(search.toLowerCase())
-    ), [rows, search]);
+  const filtered = useMemo(() => {
+    const priority = (r: StockRow) => {
+      if (r.last_updated_at === null) return 3; // not set → bottom
+      if (r.stock_quantity === 0)     return 2; // out of stock
+      if (r.stock_quantity <= 5)      return 1; // low
+      return 0;                                 // good → top
+    };
+    return rows
+      .filter(r =>
+        !search ||
+        r.product_name.toLowerCase().includes(search.toLowerCase()) ||
+        (r.hindi_name ?? "").includes(search) ||
+        (r.product_category ?? "").toLowerCase().includes(search.toLowerCase())
+      )
+      .sort((a, b) => {
+        const pd = priority(a) - priority(b);
+        return pd !== 0 ? pd : a.product_name.localeCompare(b.product_name);
+      });
+  }, [rows, search]);
 
   const outProducts = rows.filter(r => r.last_updated_at !== null && r.stock_quantity === 0);
   const outCount  = outProducts.length;
