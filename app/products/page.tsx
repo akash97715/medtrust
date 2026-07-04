@@ -1,6 +1,7 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
 import { getStock, getStockHistory, updateStock } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Input } from "@/components/ui/input";
@@ -128,13 +129,16 @@ function OutOfStockTile({ count, products }: { count: number; products: StockRow
 }
 
 // ── Page ────────────────────────────────────────────────────────────────────
-export default function ProductsPage() {
+function ProductsContent() {
   const { isAdmin } = useAuth();
   const qc = useQueryClient();
-  const [search, setSearch] = useState("");
+  const searchParams = useSearchParams();
+  const autoEditId = searchParams.get("edit");
+  const [search, setSearch] = useState(searchParams.get("q") ?? "");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newQty, setNewQty] = useState("");
   const [editNote, setEditNote] = useState("");
+  const autoEditApplied = useRef(false);
   const [showHistory, setShowHistory] = useState(false);
 
   const { data: rawStock, isLoading } = useQuery({
@@ -181,6 +185,25 @@ export default function ProductsPage() {
 
   function startEdit(row: StockRow) { setEditingId(row.product_id); setNewQty(String(row.stock_quantity)); setEditNote(""); }
   function cancelEdit() { setEditingId(null); setNewQty(""); setEditNote(""); }
+
+  // Auto-open edit panel when ?edit=<id> is in the URL (coming from Add Product duplicate warning)
+  useEffect(() => {
+    if (!autoEditId || !rows.length || autoEditApplied.current) return;
+    const row = rows.find(r => r.product_id === autoEditId);
+    if (!row) return;
+    autoEditApplied.current = true;
+    setSearch(row.product_name.split(" ").slice(0, 3).join(" "));
+    setEditingId(row.product_id);
+    setNewQty(String(row.stock_quantity));
+    setEditNote("");
+  }, [autoEditId, rows]);
+
+  // Scroll the active edit panel into view whenever it opens
+  useEffect(() => {
+    if (!editingId) return;
+    const el = document.getElementById(`product-row-${editingId}`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [editingId]);
   function saveEdit(id: string) {
     const qty = parseFloat(newQty);
     if (isNaN(qty) || qty < 0) { toast.error("Enter a valid number"); return; }
@@ -292,7 +315,7 @@ export default function ProductsPage() {
             const isEditing = editingId === row.product_id;
 
             return (
-              <div key={row.product_id} className="border-b border-slate-100 last:border-0">
+              <div key={row.product_id} id={`product-row-${row.product_id}`} className="border-b border-slate-100 last:border-0">
 
                 {/* Main row */}
                 <div className={`grid grid-cols-1 sm:grid-cols-[2fr_72px_1fr_1fr_52px] gap-2 sm:gap-4 px-5 py-4 items-center transition-colors ${
@@ -499,5 +522,13 @@ export default function ProductsPage() {
       </div>
 
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense>
+      <ProductsContent />
+    </Suspense>
   );
 }
