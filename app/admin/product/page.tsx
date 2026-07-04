@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createProduct, getStock } from "@/lib/api";
 import { useRouter } from "next/navigation";
@@ -186,21 +186,16 @@ function ProductForm({ onSaved }: { onSaved: () => void }) {
   const qc = useQueryClient();
   const router = useRouter();
   const [confirmed, setConfirmed] = useState(false);
+  // Use plain useState instead of RHF watch() — React Compiler memoizes components
+  // in production (webpack) in a way that breaks RHF's watch subscription.
+  const [productName, setProductName] = useState("");
 
-  const { register, handleSubmit, formState: { errors }, watch } = useForm<Record<string, unknown>>({
+  const { register, handleSubmit, formState: { errors } } = useForm<Record<string, unknown>>({
     defaultValues: { unit_of_measure: "piece", sample_priority: false },
   });
 
-  const productName = (watch("product_name") as string) ?? "";
-
-  // Reset confirmation whenever the product name changes
-  const prevName = useRef(productName);
-  useEffect(() => {
-    if (prevName.current !== productName) {
-      prevName.current = productName;
-      setConfirmed(false);
-    }
-  }, [productName]);
+  // Pull RHF's own onChange out so we can call both handlers
+  const { onChange: rhfOnChange, ...nameRegisterRest } = register("product_name", { required: true });
 
   // Fetch existing products for similarity check
   const { data: stockData } = useQuery({
@@ -248,9 +243,14 @@ function ProductForm({ onSaved }: { onSaved: () => void }) {
     >
       <Field label="Product name *" hint="एक standard नाम — visits और orders में reuse होगा">
         <Input
-          {...register("product_name", { required: true })}
+          {...nameRegisterRest}
           placeholder="e.g. IV Cannula 20G"
           autoComplete="off"
+          onChange={e => {
+            rhfOnChange(e);
+            setProductName(e.target.value);
+            setConfirmed(false);
+          }}
         />
         {errors.product_name && (
           <p className="text-xs text-red-500 mt-0.5">Product name is required</p>
