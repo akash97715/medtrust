@@ -1,7 +1,7 @@
 "use client";
 import { use, useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getOrder, getProducts, updateOrder, deleteOrder, updateOrderItem, deleteOrderItem, addOrderItem } from "@/lib/api";
+import { getOrder, getStock, updateOrder, deleteOrder, updateOrderItem, deleteOrderItem, addOrderItem } from "@/lib/api";
 import { useForm } from "react-hook-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -89,7 +89,7 @@ function EditItemRow({ item, onSaved, onDeleted, canDelete }: { item: Record<str
   );
 }
 
-type Product = { product_id: string; product_name: string };
+type Product = { product_id: string; product_name: string; stock_quantity: number; last_updated_at: string | null; unit_of_measure: string };
 
 function AddItemInline({ orderId, onAdded }: { orderId: string; onAdded: () => void }) {
   const [open, setOpen] = useState(false);
@@ -101,8 +101,14 @@ function AddItemInline({ orderId, onAdded }: { orderId: string; onAdded: () => v
   const [hsn, setHsn] = useState("");
   const [discount, setDiscount] = useState("0");
 
-  const { data: productsData } = useQuery({ queryKey: ["products"], queryFn: getProducts, staleTime: 0 });
+  const { data: productsData } = useQuery({ queryKey: ["stock"], queryFn: getStock, staleTime: 0 });
   const products = (productsData as Product[] ?? []);
+
+  const selectedProduct = products.find((p) => p.product_id === productId);
+  const everSet = selectedProduct ? selectedProduct.last_updated_at !== null : false;
+  const notTracked = selectedProduct !== undefined && !everSet;
+  const qtyNum = parseFloat(qty) || 0;
+  const overStock = everSet && qtyNum > 0 && qtyNum > (selectedProduct?.stock_quantity ?? 0);
 
   const mut = useMutation({
     mutationFn: (data: unknown) => addOrderItem(orderId, data),
@@ -119,6 +125,14 @@ function AddItemInline({ orderId, onAdded }: { orderId: string; onAdded: () => v
     if (!productId) { toast.error("Select a product"); return; }
     if (!qty || parseFloat(qty) <= 0) { toast.error("Enter a valid quantity"); return; }
     if (!sellRate || parseFloat(sellRate) <= 0) { toast.error("Sell rate is required"); return; }
+    if (notTracked) {
+      toast.error(`Stock not set for "${selectedProduct?.product_name}". Please set stock on the Products & Stock page before ordering.`);
+      return;
+    }
+    if (overStock) {
+      toast.error(`Not enough stock for ${selectedProduct?.product_name}: only ${selectedProduct?.stock_quantity} ${selectedProduct?.unit_of_measure} available`);
+      return;
+    }
     mut.mutate({
       product_id: productId,
       quantity: parseFloat(qty),
@@ -144,14 +158,48 @@ function AddItemInline({ orderId, onAdded }: { orderId: string; onAdded: () => v
   return (
     <div className="border border-teal-200 rounded-xl bg-teal-50/30 p-4 space-y-3">
       <p className="text-xs font-bold text-teal-700 uppercase tracking-widest">Add Product</p>
-      <Select value={productId} onValueChange={(v) => v && setProductId(v)}>
-        <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select product…" /></SelectTrigger>
-        <SelectContent>
-          {products.map((p) => <SelectItem key={p.product_id} value={p.product_id}>{p.product_name}</SelectItem>)}
-        </SelectContent>
-      </Select>
+      <div>
+        <Select
+          value={productId}
+          onValueChange={(v) => {
+            if (!v) return;
+            const prod = products.find((p) => p.product_id === v);
+            setProductId(v);
+            if (prod?.unit_of_measure) setUnit(prod.unit_of_measure);
+          }}
+        >
+          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select product…" /></SelectTrigger>
+          <SelectContent>
+            {products.map((p) => <SelectItem key={p.product_id} value={p.product_id}>{p.product_name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        {selectedProduct && (
+          <p className={`text-xs mt-1 font-medium ${
+            notTracked ? "text-amber-600" :
+            selectedProduct.stock_quantity === 0 ? "text-red-500" :
+            selectedProduct.stock_quantity <= 5 ? "text-amber-600" : "text-emerald-600"
+          }`}>
+            {notTracked
+              ? "⚠ Stock not set — go to Products & Stock page first"
+              : `● ${selectedProduct.stock_quantity} ${selectedProduct.unit_of_measure} in stock`}
+          </p>
+        )}
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <Input type="number" step="0.01" value={qty} onChange={(e) => setQty(e.target.value)} placeholder="Qty *" className="h-9 text-sm" />
+        <div>
+          <Input
+            type="number" step="0.01" value={qty}
+            onChange={(e) => setQty(e.target.value)}
+            placeholder="Qty *"
+            disabled={notTracked}
+            className={`h-9 text-sm ${overStock ? "border-red-400 focus-visible:ring-red-400" : notTracked ? "opacity-50 cursor-not-allowed" : ""}`}
+          />
+          {overStock && (
+            <p className="text-xs text-red-600 font-semibold mt-0.5">
+              ⚠ Only {selectedProduct?.stock_quantity} {selectedProduct?.unit_of_measure} in stock
+            </p>
+          )}
+        </div>
         <Input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="Unit" className="h-9 text-sm" />
         <Input type="number" step="0.01" value={buyRate} onChange={(e) => setBuyRate(e.target.value)} placeholder="Buy Rate" className="h-9 text-sm" />
         <Input type="number" step="0.01" value={sellRate} onChange={(e) => setSellRate(e.target.value)} placeholder="Sell Rate *" className="h-9 text-sm" />
@@ -159,7 +207,7 @@ function AddItemInline({ orderId, onAdded }: { orderId: string; onAdded: () => v
         <Input type="number" step="0.01" value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="Discount ₹" className="h-9 text-sm" />
       </div>
       <div className="flex gap-2">
-        <Button size="sm" onClick={handleAdd} disabled={mut.isPending} className="h-8 text-xs">
+        <Button size="sm" onClick={handleAdd} disabled={mut.isPending || overStock || notTracked} className="h-8 text-xs">
           {mut.isPending ? "Saving…" : "Add to Order"}
         </Button>
         <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setOpen(false)}>Cancel</Button>

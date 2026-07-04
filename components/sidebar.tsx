@@ -8,7 +8,7 @@ import { PinInput } from "@/components/pin-input";
 import {
   LayoutDashboard, Users, Package, CalendarCheck, ShoppingCart,
   DollarSign, PlusCircle, MoreHorizontal, X, Building2, Lock, Store,
-  UserCheck, ChevronRight,
+  UserCheck, ChevronRight, Archive,
 } from "lucide-react";
 
 // Admin-only pages (require owner code)
@@ -175,6 +175,7 @@ export function Sidebar() {
                 <NavLink href="/visits" label="Visits" icon={CalendarCheck} />
                 <NavLink href="/visitors" label="Visitors" icon={UserCheck} />
                 <NavLink href="/orders" label="Orders" icon={ShoppingCart} />
+                <NavLink href="/products" label="Products & Stock" icon={Archive} />
                 <NavLink href="/catalog-admin" label="Manage Catalog" icon={Store} />
                 <Link
                   href="/admin"
@@ -202,7 +203,6 @@ export function Sidebar() {
               </p>
               <div className="space-y-px">
                 <NavLink href="/dashboard" label="Dashboard" icon={LayoutDashboard} />
-                <NavLink href="/products" label="Products" icon={Package} />
                 <NavLink href="/pricing" label="Pricing" icon={DollarSign} />
               </div>
             </div>
@@ -267,12 +267,12 @@ export function MobileNav() {
     ...(isStaff ? [
       { href: "/visitors", label: "Visitors", icon: UserCheck },
       { href: "/orders", label: "Orders", icon: ShoppingCart },
+      { href: "/products", label: "Products & Stock", icon: Archive },
       { href: "/catalog-admin", label: "Manage Catalog", icon: Store },
       { href: "/admin", label: "Add Data", icon: PlusCircle },
     ] : []),
     ...(isAdmin ? [
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/products", label: "Products", icon: Package },
       { href: "/pricing", label: "Pricing", icon: DollarSign },
     ] : []),
   ];

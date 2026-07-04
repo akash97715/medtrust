@@ -125,3 +125,9 @@ export const deletePayment = (paymentId: string) =>
 
 // Pricing
 export const getPricing = () => req("/api/pricing");
+
+// Stock
+export const getStock = () => req("/api/stock");
+export const getStockHistory = () => req("/api/stock/history");
+export const updateStock = (productId: string, data: { quantity: number; notes?: string }) =>
+  req(`/api/stock/${productId}`, { method: "PATCH", body: JSON.stringify(data) });

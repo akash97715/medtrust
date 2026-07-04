@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getParties, getProducts, createOrder } from "@/lib/api";
+import { getParties, getStock, createOrder } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,7 +12,13 @@ import { useRouter } from "next/navigation";
 import { Plus, Trash2, ChevronDown, ChevronUp, Info } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
-type Product = { product_id: string; product_name: string };
+type Product = {
+  product_id: string;
+  product_name: string;
+  unit_of_measure: string;
+  stock_quantity: number;
+  last_updated_at: string | null;
+};
 type LineItem = {
   id: number;
   product_id: string;
@@ -71,6 +77,10 @@ function ItemRow({
 }) {
   const product = products.find((p) => p.product_id === item.product_id);
   const qty = parseFloat(item.quantity) || 0;
+  const everSet = product ? product.last_updated_at !== null : false;
+  const availableStock = product ? product.stock_quantity : 0;
+  const notTracked = product !== undefined && !everSet;
+  const overStock = everSet && qty > availableStock && qty > 0;
   const sell = parseFloat(item.sell_rate) || 0;
   const disc = parseFloat(item.discount) || 0;
   const lineTotal = qty * sell - disc;
@@ -121,7 +131,14 @@ function ItemRow({
           {/* Product select */}
           <div>
             <label className="text-xs font-semibold text-slate-600 mb-1 block">Product *</label>
-            <Select value={item.product_id} onValueChange={(v) => v && onChange(item.id, { product_id: v })}>
+            <Select
+              value={item.product_id}
+              onValueChange={(v) => {
+                if (!v) return;
+                const prod = products.find((p) => p.product_id === v);
+                onChange(item.id, { product_id: v, unit_of_measure: prod?.unit_of_measure || item.unit_of_measure });
+              }}
+            >
               <SelectTrigger className="h-9 text-sm">
                 <SelectValue placeholder="Select product…" />
               </SelectTrigger>
@@ -133,6 +150,17 @@ function ItemRow({
                 ))}
               </SelectContent>
             </Select>
+            {product && (
+              <p className={`text-xs mt-1 font-medium ${
+                notTracked ? "text-amber-600" :
+                availableStock === 0 ? "text-red-500" :
+                availableStock <= 5 ? "text-amber-600" : "text-emerald-600"
+              }`}>
+                {notTracked
+                  ? "⚠ Stock not set — go to Products & Stock page first"
+                  : `● ${availableStock} ${product.unit_of_measure} in stock`}
+              </p>
+            )}
           </div>
 
           {/* Qty + Unit */}
@@ -144,8 +172,14 @@ function ItemRow({
                 value={item.quantity}
                 onChange={(e) => onChange(item.id, { quantity: e.target.value })}
                 placeholder="100"
-                className="h-9 text-sm"
+                disabled={notTracked}
+                className={`h-9 text-sm ${overStock ? "border-red-400 focus-visible:ring-red-400" : notTracked ? "opacity-50 cursor-not-allowed" : ""}`}
               />
+              {overStock && (
+                <p className="text-xs text-red-600 font-semibold mt-1">
+                  ⚠ Only {availableStock} {product?.unit_of_measure} in stock
+                </p>
+              )}
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-600 mb-1 block">Unit</label>
@@ -268,7 +302,7 @@ export default function AddOrderPage() {
   const router = useRouter();
 
   const { data: parties, isLoading: lp } = useQuery({ queryKey: ["parties"], queryFn: () => getParties() });
-  const { data: productsData, isLoading: lprod } = useQuery({ queryKey: ["products"], queryFn: getProducts, staleTime: 0 });
+  const { data: productsData, isLoading: lprod } = useQuery({ queryKey: ["stock"], queryFn: getStock, staleTime: 0 });
   const products = (productsData as Product[] ?? []);
 
   // Order header
@@ -343,6 +377,27 @@ export default function AddOrderPage() {
     if (missingRate) {
       const prod = products.find((p) => p.product_id === missingRate.product_id);
       toast.error(`Sell rate is required for ${prod?.product_name ?? "all products"}`);
+      return;
+    }
+
+    const untrackedItem = validItems.find((it) => {
+      const prod = products.find((p) => p.product_id === it.product_id);
+      return !prod?.last_updated_at;
+    });
+    if (untrackedItem) {
+      const prod = products.find((p) => p.product_id === untrackedItem.product_id);
+      toast.error(`Stock not set for "${prod?.product_name}". Please set stock on the Products & Stock page before ordering.`);
+      return;
+    }
+
+    const stockError = validItems.find((it) => {
+      const prod = products.find((p) => p.product_id === it.product_id);
+      if (!prod || !prod.last_updated_at) return false;
+      return parseFloat(it.quantity) > prod.stock_quantity;
+    });
+    if (stockError) {
+      const prod = products.find((p) => p.product_id === stockError.product_id);
+      toast.error(`Not enough stock for ${prod?.product_name}: only ${prod?.stock_quantity} ${prod?.unit_of_measure} available`);
       return;
     }
 

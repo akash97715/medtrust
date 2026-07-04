@@ -2,7 +2,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import dashboard, parties, products, visits, orders, pricing, auth, catalog, enquiries
+from routers import dashboard, parties, products, visits, orders, pricing, auth, catalog, enquiries, stock
 from database import execute
 
 app = FastAPI(title="MedTrust Healthcare API", version="2.0.0")
@@ -39,6 +39,7 @@ app.include_router(products.router, prefix="/api/products", tags=["products"])
 app.include_router(visits.router, prefix="/api/visits", tags=["visits"])
 app.include_router(orders.router, prefix="/api/orders", tags=["orders"])
 app.include_router(pricing.router, prefix="/api/pricing", tags=["pricing"])
+app.include_router(stock.router, prefix="/api/stock", tags=["stock"])
 
 
 @app.on_event("startup")
@@ -133,6 +134,37 @@ def run_migrations():
         )
         """,
         "CREATE INDEX IF NOT EXISTS idx_order_payments_order ON order_payments(sales_order_id)",
+        # Stock tracking
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_quantity FLOAT DEFAULT 0",
+        """
+        CREATE TABLE IF NOT EXISTS stock_adjustments (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+            adjustment_type VARCHAR(30) NOT NULL,
+            qty_before FLOAT NOT NULL DEFAULT 0,
+            qty_change FLOAT NOT NULL DEFAULT 0,
+            qty_after FLOAT NOT NULL DEFAULT 0,
+            reference_order_id UUID,
+            party_name TEXT,
+            notes TEXT,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS idx_stock_adj_product ON stock_adjustments(product_id, created_at DESC)",
+        # Allow multiple orders per party per date — drop the unique constraint if it exists
+        """
+        DO $$
+        DECLARE cname TEXT;
+        BEGIN
+            SELECT conname INTO cname
+            FROM pg_constraint
+            WHERE conrelid = 'sales_orders'::regclass AND contype = 'u'
+            LIMIT 1;
+            IF cname IS NOT NULL THEN
+                EXECUTE format('ALTER TABLE sales_orders DROP CONSTRAINT %I', cname);
+            END IF;
+        END $$
+        """,
     ]
     for sql in migrations:
         execute(sql)

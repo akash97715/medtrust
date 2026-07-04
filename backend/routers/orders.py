@@ -10,6 +10,47 @@ from database import get_conn
 router = APIRouter()
 
 
+def _check_stock_before_order(product_id: str, qty_needed: float):
+    """Raise 422 if qty_needed exceeds stock. Only enforced after the first manual_set adjustment."""
+    rows = query(
+        "SELECT product_name, COALESCE(stock_quantity, 0) AS sq FROM products WHERE id = %s",
+        (product_id,),
+    )
+    if not rows:
+        return
+    available = float(rows[0]["sq"])
+    tracked = scalar(
+        "SELECT 1 FROM stock_adjustments WHERE product_id = %s AND adjustment_type = 'manual_set' LIMIT 1",
+        (product_id,),
+    )
+    if not tracked:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Stock not set for {rows[0]['product_name']}. Please go to Products & Stock and set the available quantity before creating an order.",
+        )
+    if qty_needed > available:
+        name = rows[0]["product_name"]
+        raise HTTPException(
+            status_code=422,
+            detail=f"Not enough stock for {name}. In stock: {int(available)}, you entered: {int(qty_needed)}. Please update stock first.",
+        )
+
+
+def _log_stock_change(cur, product_id: str, qty_change: float, adj_type: str, order_id: str = "", party_name: str = ""):
+    """Adjust stock_quantity on products and record an audit row. Must be called inside an open transaction cursor."""
+    cur.execute("SELECT COALESCE(stock_quantity, 0) AS sq FROM products WHERE id = %s", (product_id,))
+    row = cur.fetchone()
+    qty_before = float((dict(row) if row else {}).get("sq") or 0)
+    qty_after = max(0.0, qty_before + qty_change)
+    cur.execute("UPDATE products SET stock_quantity = %s WHERE id = %s", (qty_after, product_id))
+    cur.execute(
+        """INSERT INTO stock_adjustments
+               (product_id, adjustment_type, qty_before, qty_change, qty_after, reference_order_id, party_name)
+           VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+        (product_id, adj_type, qty_before, qty_change, qty_after, order_id or None, party_name or None),
+    )
+
+
 class OrderItemInput(BaseModel):
     product_id: str
     quantity: float
@@ -264,6 +305,8 @@ def create_order(body: OrderCreate):
     for item in body.items:
         if item.quantity <= 0:
             raise HTTPException(status_code=422, detail="Quantity must be greater than zero for all items")
+    for item in body.items:
+        _check_stock_before_order(item.product_id, item.quantity)
     try:
         with get_conn() as conn:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
@@ -279,6 +322,10 @@ def create_order(body: OrderCreate):
                      body.sgst_rate if body.sgst_rate is not None else 6),
                 )
                 order = dict(cur.fetchone())
+                # Fetch party name once for stock audit log
+                cur.execute("SELECT name FROM parties WHERE id = %s", (body.party_id,))
+                prow = cur.fetchone()
+                party_name = dict(prow)["name"] if prow else ""
                 for item in body.items:
                     cur.execute(
                         """
@@ -292,14 +339,11 @@ def create_order(body: OrderCreate):
                         """
                         INSERT INTO party_product_pricing (party_id, product_id, buy_rate, sell_rate, currency_code, effective_from, notes)
                         VALUES (%s, %s, %s, %s, 'INR', %s, 'Auto-saved from order entry')
+                        ON CONFLICT DO NOTHING
                         """,
                         (body.party_id, item.product_id, item.buy_rate, item.sell_rate, body.order_date),
                     )
-    except psycopg2.errors.UniqueViolation:
-        raise HTTPException(
-            status_code=409,
-            detail="An order for this party on this date already exists. Add a Reference Number to distinguish multiple orders on the same date.",
-        )
+                    _log_stock_change(cur, item.product_id, -item.quantity, "order_deduct", str(order["id"]), party_name)
     except psycopg2.Error as e:
         raise HTTPException(status_code=422, detail=str(e).splitlines()[0])
     return {"id": str(order["id"]), "party_id": str(order["party_id"])}
@@ -309,10 +353,15 @@ def create_order(body: OrderCreate):
 def add_order_item(order_id: str, body: OrderItemInput):
     if body.quantity <= 0:
         raise HTTPException(status_code=422, detail="Quantity must be greater than zero")
-    rows = query("SELECT party_id FROM sales_orders WHERE id = %s", (order_id,))
+    _check_stock_before_order(body.product_id, body.quantity)
+    rows = query(
+        "SELECT so.party_id, p.name AS party_name FROM sales_orders so JOIN parties p ON p.id = so.party_id WHERE so.id = %s",
+        (order_id,),
+    )
     if not rows:
         raise HTTPException(status_code=404, detail="Order not found")
     party_id = rows[0]["party_id"]
+    party_name = rows[0]["party_name"]
     try:
         with get_conn() as conn:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
@@ -329,9 +378,11 @@ def add_order_item(order_id: str, body: OrderItemInput):
                     """
                     INSERT INTO party_product_pricing (party_id, product_id, buy_rate, sell_rate, currency_code, effective_from, notes)
                     VALUES (%s, %s, %s, %s, 'INR', CURRENT_DATE, 'Auto-saved from order entry')
+                    ON CONFLICT DO NOTHING
                     """,
                     (party_id, body.product_id, body.buy_rate, body.sell_rate),
                 )
+                _log_stock_change(cur, body.product_id, -body.quantity, "order_deduct", order_id, party_name)
     except psycopg2.Error as e:
         raise HTTPException(status_code=422, detail=str(e).splitlines()[0])
     return {"id": str(item_id)}
@@ -404,7 +455,11 @@ def delete_order(order_id: str):
 @router.patch("/items/{item_id}")
 def update_order_item(item_id: str, body: OrderItemUpdate):
     rows = query(
-        "SELECT soi.*, so.party_id FROM sales_order_items soi JOIN sales_orders so ON so.id = soi.sales_order_id WHERE soi.id = %s",
+        """SELECT soi.*, so.party_id, so.id AS sales_order_id_str, p.name AS party_name
+           FROM sales_order_items soi
+           JOIN sales_orders so ON so.id = soi.sales_order_id
+           JOIN parties p ON p.id = so.party_id
+           WHERE soi.id = %s""",
         (item_id,),
     )
     if not rows:
@@ -413,6 +468,9 @@ def update_order_item(item_id: str, body: OrderItemUpdate):
     quantity = body.quantity if body.quantity is not None else float(e["quantity"])
     if quantity <= 0:
         raise HTTPException(status_code=422, detail="Quantity must be greater than zero")
+    old_qty = float(e["quantity"])
+    if quantity > old_qty:
+        _check_stock_before_order(str(e["product_id"]), quantity - old_qty)
     buy_rate = body.buy_rate if body.buy_rate is not None else (float(e["buy_rate"]) if e["buy_rate"] else None)
     sell_rate = body.sell_rate if body.sell_rate is not None else (float(e["sell_rate"]) if e["sell_rate"] else None)
 
@@ -442,13 +500,40 @@ def update_order_item(item_id: str, body: OrderItemUpdate):
                 """
                 INSERT INTO party_product_pricing (party_id, product_id, buy_rate, sell_rate, currency_code, effective_from, notes)
                 VALUES (%s, %s, %s, %s, 'INR', CURRENT_DATE, 'Auto-updated from order edit')
+                ON CONFLICT DO NOTHING
                 """,
                 (e["party_id"], row["product_id"], buy_rate, sell_rate),
             )
+            # Adjust stock if quantity changed
+            if quantity != old_qty:
+                # old_qty - quantity: positive = we freed stock, negative = more sold
+                _log_stock_change(
+                    cur, str(row["product_id"]), old_qty - quantity,
+                    "order_update", str(e.get("sales_order_id") or e.get("sales_order_id_str") or ""),
+                    str(e.get("party_name") or ""),
+                )
     return {"ok": True}
 
 
 @router.delete("/items/{item_id}")
 def delete_order_item(item_id: str):
-    execute("DELETE FROM sales_order_items WHERE id = %s", (item_id,))
+    # Look up before deleting so we can restore stock
+    rows = query(
+        """SELECT soi.product_id, soi.quantity, soi.sales_order_id, p.name AS party_name
+           FROM sales_order_items soi
+           JOIN sales_orders so ON so.id = soi.sales_order_id
+           JOIN parties p ON p.id = so.party_id
+           WHERE soi.id = %s""",
+        (item_id,),
+    )
+    if not rows:
+        return {"ok": True}
+    item = rows[0]
+    with get_conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("DELETE FROM sales_order_items WHERE id = %s", (item_id,))
+            _log_stock_change(
+                cur, str(item["product_id"]), float(item["quantity"]),
+                "order_restore", str(item["sales_order_id"]), str(item.get("party_name") or ""),
+            )
     return {"ok": True}
