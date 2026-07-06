@@ -152,13 +152,25 @@ def list_orders():
         ORDER BY so.order_date DESC, so.reference_number, p.name
         """
     )
+    # Grand total across all non-draft/non-cancelled orders — matches Finance "Total Billed"
     total_value = scalar(
         """
-        SELECT COALESCE(SUM(soi.quantity * COALESCE(soi.sell_rate, 0)), 0)
+        SELECT COALESCE(SUM(
+            (soi.quantity * COALESCE(soi.sell_rate, 0) - COALESCE(soi.discount, 0))
+            * (1 + COALESCE(so.cgst_rate, 6)/100.0 + COALESCE(so.sgst_rate, 6)/100.0)
+        ), 0)
         FROM sales_order_items soi
         JOIN sales_orders so ON so.id = soi.sales_order_id
-        JOIN parties p ON p.id = so.party_id AND p.is_active = TRUE
-        WHERE so.order_status IN ('confirmed', 'delivered', 'partial_payment')
+        WHERE so.order_status NOT IN ('draft', 'cancelled')
+        """
+    )
+    # Total collected across all non-draft/non-cancelled orders — matches Finance "Amount Received"
+    total_collected = scalar(
+        """
+        SELECT COALESCE(SUM(op.amount), 0)
+        FROM order_payments op
+        JOIN sales_orders so ON so.id = op.sales_order_id
+        WHERE so.order_status NOT IN ('draft', 'cancelled')
         """
     )
     # Payment totals per order for list display
@@ -181,6 +193,7 @@ def list_orders():
     return {
         "rows": rows,
         "total_confirmed_value": total_value,
+        "total_collected": total_collected,
         "payment_totals": payment_totals,
         "grand_totals": grand_totals,
     }

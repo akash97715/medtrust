@@ -139,6 +139,7 @@ export default function OrdersPage() {
   const d = data as {
     rows: Record<string, unknown>[];
     total_confirmed_value: number;
+    total_collected: number;
     payment_totals: Record<string, number>;
     grand_totals: Record<string, number>;
   } | undefined;
@@ -191,7 +192,7 @@ export default function OrdersPage() {
     const t = o.grand_total > 0 ? o.grand_total : o.total_value;
     return s + Math.max(0, t - o.total_received);
   }, 0);
-  const totalCollected = allOrders.reduce((s, o) => s + o.total_received, 0);
+  const totalCollected = d?.total_collected ?? 0;
 
   return (
     <div className="space-y-5">
