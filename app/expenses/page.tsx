@@ -7,20 +7,20 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Plus, X, Trash2, IndianRupee } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X, Trash2, IndianRupee, User } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Expense = {
   id: string;
   expense_type: string;
   amount: number;
+  incentive_amount: number;
   expense_date: string;
   paid_to: string | null;
   notes: string | null;
   created_at: string;
 };
 
-// ── Type config ───────────────────────────────────────────────────────────────
 type TypeCfg = {
   label: string; labelHi: string;
   dot: string; text: string; bg: string; border: string; headerBg: string;
@@ -42,54 +42,199 @@ function cfg(type: string): TypeCfg {
   return TYPE_CONFIG[type] ?? TYPE_CONFIG.miscellaneous;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 function fmtINR(n: number) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency", currency: "INR", maximumFractionDigits: 0,
   }).format(n);
 }
-
 function fmtDate(d: string) {
-  return new Date(d + "T00:00:00").toLocaleDateString("en-IN", {
-    day: "2-digit", month: "short",
-  });
+  return new Date(d + "T00:00:00").toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
 }
-
 function monthLabel(m: string) {
   const [y, mo] = m.split("-");
-  return new Date(parseInt(y), parseInt(mo) - 1).toLocaleDateString("en-IN", {
-    month: "long", year: "numeric",
-  });
+  return new Date(parseInt(y), parseInt(mo) - 1).toLocaleDateString("en-IN", { month: "long", year: "numeric" });
 }
-
 function currentMonthStr() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
-
 function offsetMonth(m: string, delta: number) {
   const [y, mo] = m.split("-").map(Number);
   const d = new Date(y, mo - 1 + delta);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
-
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+// ── Salary row ────────────────────────────────────────────────────────────────
+function SalaryRow({ row, onDelete, deleting }: { row: Expense; onDelete: () => void; deleting: boolean }) {
+  const base = row.amount - row.incentive_amount;
+  const hasIncentive = row.incentive_amount > 0;
+
+  return (
+    <div className="flex items-start gap-4 px-5 py-4 hover:bg-slate-50/60 group transition-colors">
+      {/* Employee avatar */}
+      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0 mt-0.5">
+        <User size={14} className="text-indigo-500" />
+      </div>
+
+      {/* Name + breakdown */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold text-slate-800">
+          {row.paid_to || <span className="italic text-slate-400">No name</span>}
+        </p>
+        <div className="flex flex-wrap items-center gap-2 mt-1.5">
+          {/* Base salary pill */}
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700">
+            Base {fmtINR(base)}
+          </span>
+          {hasIncentive && (
+            <>
+              <span className="text-slate-300 text-xs">+</span>
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700">
+                Incentive {fmtINR(row.incentive_amount)}
+              </span>
+            </>
+          )}
+        </div>
+        {row.notes && (
+          <p className="text-[11px] text-slate-400 mt-1">{row.notes}</p>
+        )}
+      </div>
+
+      {/* Total + date */}
+      <div className="text-right shrink-0">
+        <p className="text-sm font-bold text-slate-800 tabular-nums">{fmtINR(row.amount)}</p>
+        <p className="text-xs text-slate-400 mt-0.5">{fmtDate(row.expense_date)}</p>
+      </div>
+
+      {/* Delete */}
+      <button
+        onClick={onDelete}
+        disabled={deleting}
+        className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md shrink-0 mt-0.5"
+        title="Delete"
+      >
+        <Trash2 size={13} />
+      </button>
+    </div>
+  );
+}
+
+// ── Salary form ───────────────────────────────────────────────────────────────
+function SalaryForm({
+  fPaidTo, setFPaidTo,
+  fBase, setFBase,
+  fIncentive, setFIncentive,
+  fDate, setFDate,
+  fNotes, setFNotes,
+}: {
+  fPaidTo: string; setFPaidTo: (v: string) => void;
+  fBase: string; setFBase: (v: string) => void;
+  fIncentive: string; setFIncentive: (v: string) => void;
+  fDate: string; setFDate: (v: string) => void;
+  fNotes: string; setFNotes: (v: string) => void;
+}) {
+  const base = parseFloat(fBase) || 0;
+  const incentive = parseFloat(fIncentive) || 0;
+  const total = base + incentive;
+
+  return (
+    <div className="space-y-4">
+      {/* Row 1: Employee + Date */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
+            Employee Name <span className="text-red-400">*</span>
+          </label>
+          <Input
+            value={fPaidTo}
+            onChange={e => setFPaidTo(e.target.value)}
+            placeholder="e.g. Ramesh Kumar"
+            className="bg-white"
+            autoFocus
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">Date</label>
+          <Input type="date" value={fDate} onChange={e => setFDate(e.target.value)} className="bg-white" />
+        </div>
+      </div>
+
+      {/* Row 2: Base + Incentive */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
+            Base Salary (₹) <span className="text-red-400">*</span>
+          </label>
+          <Input
+            type="number" min="1" step="1"
+            value={fBase}
+            onChange={e => setFBase(e.target.value)}
+            placeholder="e.g. 15000"
+            className="bg-white"
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-2">
+            Incentive (₹)
+            <span className="text-slate-400 normal-case font-normal">optional</span>
+          </label>
+          <Input
+            type="number" min="0" step="1"
+            value={fIncentive}
+            onChange={e => setFIncentive(e.target.value)}
+            placeholder="e.g. 2000"
+            className="bg-white"
+          />
+        </div>
+      </div>
+
+      {/* Live total preview */}
+      {total > 0 && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+          <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider">Total Payout</span>
+          <span className="text-sm font-bold text-indigo-800 tabular-nums">{fmtINR(total)}</span>
+          {incentive > 0 && (
+            <span className="text-xs text-indigo-400">
+              ({fmtINR(base)} base + {fmtINR(incentive)} incentive)
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Notes */}
+      <div className="space-y-1">
+        <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
+          Notes <span className="text-slate-400 normal-case font-normal">(optional)</span>
+        </label>
+        <Input
+          value={fNotes}
+          onChange={e => setFNotes(e.target.value)}
+          placeholder="Month, designation, or any remarks…"
+          className="bg-white"
+        />
+      </div>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function ExpensesPage() {
   const qc = useQueryClient();
-  const [month, setMonth]     = useState(currentMonthStr());
+  const [month, setMonth]       = useState(currentMonthStr());
   const [showForm, setShowForm] = useState(false);
 
-  // Add-expense form state (plain useState — avoids React Compiler / RHF watch issues)
-  const [fType,   setFType]   = useState("salary");
-  const [fAmt,    setFAmt]    = useState("");
-  const [fDate,   setFDate]   = useState(todayStr());
-  const [fPaidTo, setFPaidTo] = useState("");
-  const [fNotes,  setFNotes]  = useState("");
+  // Form state — plain useState (avoids React Compiler / RHF watch issues)
+  const [fType,      setFType]      = useState("salary");
+  const [fAmt,       setFAmt]       = useState("");
+  const [fBase,      setFBase]      = useState("");
+  const [fIncentive, setFIncentive] = useState("");
+  const [fDate,      setFDate]      = useState(todayStr());
+  const [fPaidTo,    setFPaidTo]    = useState("");
+  const [fNotes,     setFNotes]     = useState("");
 
   const { data: raw, isLoading } = useQuery({
     queryKey: ["expenses", month],
@@ -99,7 +244,6 @@ export default function ExpensesPage() {
 
   const expenses = (raw as Expense[] | undefined) ?? [];
 
-  // Group by type, ordered by TYPE_ORDER then by descending subtotal for unknowns
   const grouped = useMemo(() => {
     const map = new Map<string, Expense[]>();
     for (const e of expenses) {
@@ -126,7 +270,8 @@ export default function ExpensesPage() {
       toast.success("Expense recorded");
       qc.invalidateQueries({ queryKey: ["expenses"] });
       setShowForm(false);
-      setFAmt(""); setFPaidTo(""); setFNotes(""); setFType("salary"); setFDate(todayStr());
+      setFAmt(""); setFBase(""); setFIncentive("");
+      setFPaidTo(""); setFNotes(""); setFType("salary"); setFDate(todayStr());
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -141,34 +286,47 @@ export default function ExpensesPage() {
   });
 
   function handleSubmit() {
-    const amt = parseFloat(fAmt);
-    if (isNaN(amt) || amt <= 0) { toast.error("Enter a valid amount"); return; }
-    if (fType === "salary" && !fPaidTo.trim()) { toast.error("Paid to is required for salary"); return; }
-    addMutation.mutate({
-      expense_type: fType,
-      amount: amt,
-      expense_date: fDate || undefined,
-      paid_to: fPaidTo.trim() || undefined,
-      notes: fNotes.trim() || undefined,
-    });
+    if (fType === "salary") {
+      const base = parseFloat(fBase);
+      const incentive = parseFloat(fIncentive) || 0;
+      if (isNaN(base) || base <= 0) { toast.error("Enter a valid base salary"); return; }
+      if (!fPaidTo.trim()) { toast.error("Employee name is required"); return; }
+      addMutation.mutate({
+        expense_type: "salary",
+        amount: base + incentive,
+        incentive_amount: incentive,
+        expense_date: fDate || undefined,
+        paid_to: fPaidTo.trim(),
+        notes: fNotes.trim() || undefined,
+      });
+    } else {
+      const amt = parseFloat(fAmt);
+      if (isNaN(amt) || amt <= 0) { toast.error("Enter a valid amount"); return; }
+      addMutation.mutate({
+        expense_type: fType,
+        amount: amt,
+        incentive_amount: 0,
+        expense_date: fDate || undefined,
+        paid_to: fPaidTo.trim() || undefined,
+        notes: fNotes.trim() || undefined,
+      });
+    }
   }
+
+  const isSalaryForm = fType === "salary";
 
   return (
     <div className="space-y-5">
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="flex flex-wrap items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-slate-800">Expenses</h1>
           <p className="text-sm text-slate-400 mt-0.5">खर्च ट्रैकर · Operational cost tracking</p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Month picker */}
           <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg px-1 h-9">
-            <button
-              onClick={() => setMonth(m => offsetMonth(m, -1))}
-              className="p-1.5 text-slate-400 hover:text-slate-700 transition-colors"
-            >
+            <button onClick={() => setMonth(m => offsetMonth(m, -1))} className="p-1.5 text-slate-400 hover:text-slate-700 transition-colors">
               <ChevronLeft size={14} />
             </button>
             <span className="text-sm font-semibold text-slate-700 min-w-[120px] text-center select-none">
@@ -192,19 +350,14 @@ export default function ExpensesPage() {
         </div>
       </div>
 
-      {/* ── Monthly summary ── */}
+      {/* Monthly summary */}
       <div className="bg-white rounded-xl border border-slate-200 px-5 py-4">
         {isLoading ? (
-          <div className="flex gap-4">
-            <Skeleton className="h-10 w-32 rounded-lg" />
-            <Skeleton className="h-10 w-48 rounded-lg" />
-          </div>
+          <div className="flex gap-4"><Skeleton className="h-10 w-32 rounded-lg" /><Skeleton className="h-10 w-48 rounded-lg" /></div>
         ) : (
           <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             <div>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">
-                Total · {monthLabel(month)}
-              </p>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total · {monthLabel(month)}</p>
               <p className="text-2xl font-bold text-slate-900 tabular-nums">{fmtINR(total)}</p>
             </div>
             {grouped.length > 0 && (
@@ -229,7 +382,7 @@ export default function ExpensesPage() {
         )}
       </div>
 
-      {/* ── Add expense form ── */}
+      {/* Add expense form */}
       {showForm && (
         <div className="bg-white rounded-xl border border-teal-200 overflow-hidden">
           <div className="px-5 py-3.5 bg-teal-50/60 border-b border-teal-100 flex items-center gap-2">
@@ -237,69 +390,75 @@ export default function ExpensesPage() {
             <p className="text-sm font-bold text-teal-800">Record New Expense · खर्च दर्ज करें</p>
           </div>
           <div className="p-5 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
-                  Expense Type *
-                </label>
-                <select
-                  value={fType}
-                  onChange={e => setFType(e.target.value)}
-                  className="w-full h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                >
-                  {TYPE_ORDER.map(t => (
-                    <option key={t} value={t}>
-                      {TYPE_CONFIG[t].label} — {TYPE_CONFIG[t].labelHi}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">Amount (₹) *</label>
-                <Input
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={fAmt}
-                  onChange={e => setFAmt(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && handleSubmit()}
-                  placeholder="e.g. 5000"
-                  className="bg-white"
-                  autoFocus
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
-                  Paid To {fType === "salary" ? <span className="text-red-400">*</span> : <span className="text-slate-400 normal-case font-normal">(optional)</span>}
-                </label>
-                <Input
-                  value={fPaidTo}
-                  onChange={e => setFPaidTo(e.target.value)}
-                  placeholder={fType === "salary" ? "Employee name / कर्मचारी का नाम" : "Vendor / person"}
-                  className="bg-white"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">Date</label>
-                <Input
-                  type="date"
-                  value={fDate}
-                  onChange={e => setFDate(e.target.value)}
-                  className="bg-white"
-                />
-              </div>
-            </div>
+            {/* Type selector — always shown */}
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
-                Notes <span className="text-slate-400 normal-case font-normal">(optional)</span>
-              </label>
-              <Input
-                value={fNotes}
-                onChange={e => setFNotes(e.target.value)}
-                placeholder="Additional details about this expense…"
-                className="bg-white"
-              />
+              <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">Expense Type *</label>
+              <select
+                value={fType}
+                onChange={e => { setFType(e.target.value); setFAmt(""); setFBase(""); setFIncentive(""); setFPaidTo(""); }}
+                className="w-full h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              >
+                {TYPE_ORDER.map(t => (
+                  <option key={t} value={t}>{TYPE_CONFIG[t].label} — {TYPE_CONFIG[t].labelHi}</option>
+                ))}
+              </select>
             </div>
+
+            {/* Salary-specific form */}
+            {isSalaryForm ? (
+              <SalaryForm
+                fPaidTo={fPaidTo} setFPaidTo={setFPaidTo}
+                fBase={fBase} setFBase={setFBase}
+                fIncentive={fIncentive} setFIncentive={setFIncentive}
+                fDate={fDate} setFDate={setFDate}
+                fNotes={fNotes} setFNotes={setFNotes}
+              />
+            ) : (
+              /* Generic form for all other types */
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">Amount (₹) *</label>
+                    <Input
+                      type="number" min="1" step="1"
+                      value={fAmt}
+                      onChange={e => setFAmt(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && handleSubmit()}
+                      placeholder="e.g. 5000"
+                      className="bg-white"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">Date</label>
+                    <Input type="date" value={fDate} onChange={e => setFDate(e.target.value)} className="bg-white" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
+                      Paid To <span className="text-slate-400 normal-case font-normal">(optional)</span>
+                    </label>
+                    <Input
+                      value={fPaidTo}
+                      onChange={e => setFPaidTo(e.target.value)}
+                      placeholder="Vendor / person"
+                      className="bg-white"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
+                      Notes <span className="text-slate-400 normal-case font-normal">(optional)</span>
+                    </label>
+                    <Input
+                      value={fNotes}
+                      onChange={e => setFNotes(e.target.value)}
+                      placeholder="Additional details…"
+                      className="bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center gap-2 pt-1">
               <Button
                 onClick={handleSubmit}
@@ -316,23 +475,20 @@ export default function ExpensesPage() {
         </div>
       )}
 
-      {/* ── Grouped expense list ── */}
+      {/* Grouped expense list */}
       {isLoading ? (
-        <div className="space-y-4">
-          {Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-36 rounded-xl" />)}
-        </div>
+        <div className="space-y-4">{Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-36 rounded-xl" />)}</div>
       ) : grouped.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200 py-16 text-center">
           <p className="text-slate-400 text-sm">No expenses for {monthLabel(month)}</p>
-          <p className="text-slate-300 text-xs mt-1">
-            Click <span className="font-semibold">Add Expense</span> to record your first entry
-          </p>
+          <p className="text-slate-300 text-xs mt-1">Click <span className="font-semibold">Add Expense</span> to record your first entry</p>
         </div>
       ) : (
         <div className="space-y-4">
           {grouped.map(({ type, rows }) => {
             const c = cfg(type);
             const subtotal = rows.reduce((s, r) => s + r.amount, 0);
+            const isSalary = type === "salary";
             return (
               <div key={type} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
 
@@ -343,9 +499,15 @@ export default function ExpensesPage() {
                     <p className={`text-sm font-bold ${c.text}`}>{c.label}</p>
                     <span className="text-xs text-slate-400 font-medium">{c.labelHi}</span>
                     <span className="text-xs text-slate-300">·</span>
-                    <span className="text-xs text-slate-400">
-                      {rows.length} {rows.length === 1 ? "entry" : "entries"}
-                    </span>
+                    <span className="text-xs text-slate-400">{rows.length} {rows.length === 1 ? "entry" : "entries"}</span>
+                    {isSalary && (
+                      <>
+                        <span className="text-xs text-slate-300">·</span>
+                        <span className="text-xs text-slate-400">
+                          {fmtINR(rows.reduce((s, r) => s + r.incentive_amount, 0))} incentives
+                        </span>
+                      </>
+                    )}
                   </div>
                   <p className={`text-sm font-bold tabular-nums ${c.text}`}>{fmtINR(subtotal)}</p>
                 </div>
@@ -353,44 +515,42 @@ export default function ExpensesPage() {
                 {/* Expense rows */}
                 <div className="divide-y divide-slate-100">
                   {rows.map(row => (
-                    <div
-                      key={row.id}
-                      className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50/60 group transition-colors"
-                    >
-                      {/* Description */}
-                      <div className="flex-1 min-w-0">
-                        {row.paid_to ? (
-                          <p className="text-sm font-semibold text-slate-800 truncate">{row.paid_to}</p>
-                        ) : null}
-                        {row.notes ? (
-                          <p className={`truncate ${
-                            row.paid_to
-                              ? "text-[11px] text-slate-400 mt-0.5"
-                              : "text-sm font-medium text-slate-700"
-                          }`}>
-                            {row.notes}
-                          </p>
-                        ) : !row.paid_to ? (
-                          <p className="text-sm text-slate-400 italic">{c.label}</p>
-                        ) : null}
-                      </div>
-
-                      {/* Amount + date */}
-                      <div className="text-right shrink-0">
-                        <p className="text-sm font-bold text-slate-800 tabular-nums">{fmtINR(row.amount)}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">{fmtDate(row.expense_date)}</p>
-                      </div>
-
-                      {/* Delete — visible on hover */}
-                      <button
-                        onClick={() => delMutation.mutate(row.id)}
-                        disabled={delMutation.isPending}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md shrink-0"
-                        title="Delete entry"
+                    isSalary ? (
+                      <SalaryRow
+                        key={row.id}
+                        row={row}
+                        onDelete={() => delMutation.mutate(row.id)}
+                        deleting={delMutation.isPending}
+                      />
+                    ) : (
+                      <div
+                        key={row.id}
+                        className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50/60 group transition-colors"
                       >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
+                        <div className="flex-1 min-w-0">
+                          {row.paid_to && <p className="text-sm font-semibold text-slate-800">{row.paid_to}</p>}
+                          {row.notes ? (
+                            <p className={row.paid_to ? "text-[11px] text-slate-400 mt-0.5" : "text-sm font-medium text-slate-700"}>
+                              {row.notes}
+                            </p>
+                          ) : !row.paid_to ? (
+                            <p className="text-sm text-slate-400 italic">{c.label}</p>
+                          ) : null}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-bold text-slate-800 tabular-nums">{fmtINR(row.amount)}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">{fmtDate(row.expense_date)}</p>
+                        </div>
+                        <button
+                          onClick={() => delMutation.mutate(row.id)}
+                          disabled={delMutation.isPending}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md shrink-0"
+                          title="Delete"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    )
                   ))}
                 </div>
 

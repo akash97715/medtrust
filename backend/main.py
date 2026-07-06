@@ -171,6 +171,7 @@ def run_migrations():
         """,
         "CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(expense_date DESC)",
         "CREATE INDEX IF NOT EXISTS idx_expenses_type ON expenses(expense_type)",
+        "ALTER TABLE expenses ADD COLUMN IF NOT EXISTS incentive_amount NUMERIC(12,2) DEFAULT 0",
     ]
     for sql in migrations:
         execute(sql)
