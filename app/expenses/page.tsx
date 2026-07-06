@@ -68,13 +68,53 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+// ── Delete control (always visible, inline confirm) ───────────────────────────
+function DeleteControl({ id, confirming, onAsk, onCancel, onConfirm, deleting }: {
+  id: string; confirming: boolean;
+  onAsk: () => void; onCancel: () => void; onConfirm: () => void;
+  deleting: boolean;
+}) {
+  if (confirming) {
+    return (
+      <div className="flex items-center gap-1.5 shrink-0">
+        <button
+          onClick={onCancel}
+          className="text-[11px] font-semibold px-2.5 py-1 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-100 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onConfirm}
+          disabled={deleting}
+          className="text-[11px] font-bold px-2.5 py-1 rounded-md bg-red-500 hover:bg-red-600 text-white transition-colors disabled:opacity-50"
+        >
+          {deleting ? "…" : "Delete"}
+        </button>
+      </div>
+    );
+  }
+  return (
+    <button
+      onClick={onAsk}
+      className="p-1.5 text-rose-300 hover:text-rose-500 hover:bg-rose-50 border border-rose-100 rounded-md shrink-0 transition-colors"
+      title="Delete entry"
+    >
+      <Trash2 size={13} />
+    </button>
+  );
+}
+
 // ── Salary row ────────────────────────────────────────────────────────────────
-function SalaryRow({ row, onDelete, deleting }: { row: Expense; onDelete: () => void; deleting: boolean }) {
+function SalaryRow({ row, confirming, onAsk, onCancel, onConfirm, deleting }: {
+  row: Expense; confirming: boolean;
+  onAsk: () => void; onCancel: () => void; onConfirm: () => void;
+  deleting: boolean;
+}) {
   const base = row.amount - row.incentive_amount;
   const hasIncentive = row.incentive_amount > 0;
 
   return (
-    <div className="flex items-start gap-4 px-5 py-4 hover:bg-slate-50/60 group transition-colors">
+    <div className={`flex items-start gap-4 px-5 py-4 transition-colors ${confirming ? "bg-red-50/40" : "hover:bg-slate-50/60"}`}>
       {/* Employee avatar */}
       <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0 mt-0.5">
         <User size={14} className="text-indigo-500" />
@@ -86,7 +126,6 @@ function SalaryRow({ row, onDelete, deleting }: { row: Expense; onDelete: () => 
           {row.paid_to || <span className="italic text-slate-400">No name</span>}
         </p>
         <div className="flex flex-wrap items-center gap-2 mt-1.5">
-          {/* Base salary pill */}
           <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700">
             Base {fmtINR(base)}
           </span>
@@ -99,7 +138,10 @@ function SalaryRow({ row, onDelete, deleting }: { row: Expense; onDelete: () => 
             </>
           )}
         </div>
-        {row.notes && (
+        {confirming && (
+          <p className="text-[11px] font-semibold text-red-500 mt-1.5">Confirm delete?</p>
+        )}
+        {row.notes && !confirming && (
           <p className="text-[11px] text-slate-400 mt-1">{row.notes}</p>
         )}
       </div>
@@ -110,15 +152,11 @@ function SalaryRow({ row, onDelete, deleting }: { row: Expense; onDelete: () => 
         <p className="text-xs text-slate-400 mt-0.5">{fmtDate(row.expense_date)}</p>
       </div>
 
-      {/* Delete */}
-      <button
-        onClick={onDelete}
-        disabled={deleting}
-        className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md shrink-0 mt-0.5"
-        title="Delete"
-      >
-        <Trash2 size={13} />
-      </button>
+      <DeleteControl
+        id={row.id} confirming={confirming}
+        onAsk={onAsk} onCancel={onCancel} onConfirm={onConfirm}
+        deleting={deleting}
+      />
     </div>
   );
 }
@@ -227,6 +265,8 @@ export default function ExpensesPage() {
   const [month, setMonth]       = useState(currentMonthStr());
   const [showForm, setShowForm] = useState(false);
 
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
   // Form state — plain useState (avoids React Compiler / RHF watch issues)
   const [fType,      setFType]      = useState("salary");
   const [fAmt,       setFAmt]       = useState("");
@@ -280,6 +320,7 @@ export default function ExpensesPage() {
     mutationFn: deleteExpense,
     onSuccess: () => {
       toast.success("Entry deleted");
+      setConfirmingId(null);
       qc.invalidateQueries({ queryKey: ["expenses"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -519,13 +560,16 @@ export default function ExpensesPage() {
                       <SalaryRow
                         key={row.id}
                         row={row}
-                        onDelete={() => delMutation.mutate(row.id)}
+                        confirming={confirmingId === row.id}
+                        onAsk={() => setConfirmingId(row.id)}
+                        onCancel={() => setConfirmingId(null)}
+                        onConfirm={() => delMutation.mutate(row.id)}
                         deleting={delMutation.isPending}
                       />
                     ) : (
                       <div
                         key={row.id}
-                        className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50/60 group transition-colors"
+                        className={`flex items-center gap-4 px-5 py-3.5 transition-colors ${confirmingId === row.id ? "bg-red-50/40" : "hover:bg-slate-50/60"}`}
                       >
                         <div className="flex-1 min-w-0">
                           {row.paid_to && <p className="text-sm font-semibold text-slate-800">{row.paid_to}</p>}
@@ -536,19 +580,22 @@ export default function ExpensesPage() {
                           ) : !row.paid_to ? (
                             <p className="text-sm text-slate-400 italic">{c.label}</p>
                           ) : null}
+                          {confirmingId === row.id && (
+                            <p className="text-[11px] font-semibold text-red-500 mt-1">Confirm delete?</p>
+                          )}
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-sm font-bold text-slate-800 tabular-nums">{fmtINR(row.amount)}</p>
                           <p className="text-xs text-slate-400 mt-0.5">{fmtDate(row.expense_date)}</p>
                         </div>
-                        <button
-                          onClick={() => delMutation.mutate(row.id)}
-                          disabled={delMutation.isPending}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md shrink-0"
-                          title="Delete"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        <DeleteControl
+                          id={row.id}
+                          confirming={confirmingId === row.id}
+                          onAsk={() => setConfirmingId(row.id)}
+                          onCancel={() => setConfirmingId(null)}
+                          onConfirm={() => delMutation.mutate(row.id)}
+                          deleting={delMutation.isPending}
+                        />
                       </div>
                     )
                   ))}
