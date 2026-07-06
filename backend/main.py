@@ -2,7 +2,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import dashboard, parties, products, visits, orders, pricing, auth, catalog, enquiries, stock
+from routers import dashboard, parties, products, visits, orders, pricing, auth, catalog, enquiries, stock, expenses
 from database import execute
 
 app = FastAPI(title="MedTrust Healthcare API", version="2.0.0")
@@ -40,6 +40,7 @@ app.include_router(visits.router, prefix="/api/visits", tags=["visits"])
 app.include_router(orders.router, prefix="/api/orders", tags=["orders"])
 app.include_router(pricing.router, prefix="/api/pricing", tags=["pricing"])
 app.include_router(stock.router, prefix="/api/stock", tags=["stock"])
+app.include_router(expenses.router, prefix="/api/expenses", tags=["expenses"])
 
 
 @app.on_event("startup")
@@ -155,6 +156,20 @@ def run_migrations():
         "ALTER TABLE sales_orders DROP CONSTRAINT IF EXISTS sales_orders_party_id_order_date_key",
         "ALTER TABLE sales_orders DROP CONSTRAINT IF EXISTS uq_sales_orders_party_date",
         "ALTER TABLE sales_orders DROP CONSTRAINT IF EXISTS sales_orders_party_date_unique",
+        # Expense tracking
+        """
+        CREATE TABLE IF NOT EXISTS expenses (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            expense_type VARCHAR(50) NOT NULL,
+            amount NUMERIC(12,2) NOT NULL CHECK (amount > 0),
+            expense_date DATE NOT NULL DEFAULT CURRENT_DATE,
+            paid_to TEXT,
+            notes TEXT,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(expense_date DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_expenses_type ON expenses(expense_type)",
     ]
     for sql in migrations:
         execute(sql)

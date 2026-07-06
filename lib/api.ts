@@ -131,3 +131,11 @@ export const getStock = () => req("/api/stock");
 export const getStockHistory = () => req("/api/stock/history");
 export const updateStock = (productId: string, data: { quantity: number; notes?: string }) =>
   req(`/api/stock/${productId}`, { method: "PATCH", body: JSON.stringify(data) });
+
+// Expenses
+export const getExpenses = (month?: string) =>
+  req(`/api/expenses${month ? `?month=${month}` : ""}`);
+export const createExpense = (data: unknown) =>
+  req("/api/expenses", { method: "POST", body: JSON.stringify(data) });
+export const deleteExpense = (id: string) =>
+  req(`/api/expenses/${id}`, { method: "DELETE" });
