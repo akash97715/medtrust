@@ -425,6 +425,7 @@ function ProductsContent() {
                     ) : (
                       <span className="text-sm text-slate-300 font-medium">—</span>
                     )}
+                    <span className="sm:hidden text-xs text-slate-400 font-medium">{row.unit_of_measure}</span>
                     <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${lvl.badge}`}>
                       {row.last_updated_at ? lvl.en : "Not set"}
                     </span>
