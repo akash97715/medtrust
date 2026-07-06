@@ -317,28 +317,28 @@ export function MobileNav() {
 
   return (
     <>
-      {/* Bottom sheet drawer */}
+      {/* Bottom sheet drawer — backdrop and sheet are separate fixed elements
+          so touch-scrolling inside the sheet never hits the backdrop */}
       {showMore && (staffLinks.length > 0 || adminLinks.length > 0) && (
-        <div
-          className="md:hidden fixed inset-0 z-40"
-          onClick={() => setShowMore(false)}
-        >
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-
-          {/* Sheet */}
+        <>
+          {/* Backdrop — tap to close */}
           <div
-            className="absolute bottom-0 left-0 right-0 bg-[#0d1526] rounded-t-3xl shadow-2xl overflow-hidden"
-            style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
-            onClick={(e) => e.stopPropagation()}
+            className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowMore(false)}
+          />
+
+          {/* Sheet — z-[60] sits above the tab bar (z-50) */}
+          <div
+            className="md:hidden fixed bottom-0 left-0 right-0 z-[60] bg-[#0d1526] rounded-t-3xl shadow-2xl flex flex-col"
+            style={{ maxHeight: "82vh", paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}
           >
             {/* Handle */}
-            <div className="flex justify-center pt-3 pb-1">
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
               <div className="w-10 h-1 rounded-full bg-white/20" />
             </div>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3">
+            <div className="flex items-center justify-between px-5 py-3 shrink-0">
               <div>
                 <p className="text-white font-bold text-[15px]">Navigation</p>
                 <p className="text-white/40 text-[11px] mt-0.5">
@@ -347,13 +347,14 @@ export function MobileNav() {
               </div>
               <button
                 onClick={() => setShowMore(false)}
-                className="w-8 h-8 rounded-full bg-white/[0.08] flex items-center justify-center text-white/50 hover:text-white transition-colors"
+                className="w-8 h-8 rounded-full bg-white/[0.08] flex items-center justify-center text-white/50 active:bg-white/[0.15] transition-colors"
               >
                 <X size={14} />
               </button>
             </div>
 
-            <div className="px-4 pb-2 space-y-4">
+            {/* Scrollable content — flex-1 min-h-0 required for overflow to work in flex column */}
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pb-2 space-y-4">
               {/* Staff section */}
               {staffLinks.length > 0 && (
                 <div>
@@ -390,7 +391,7 @@ export function MobileNav() {
               {isStaff && !isAdmin && (
                 <button
                   onClick={() => { setShowMore(false); setLockModal("/dashboard"); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-teal-500/10 border border-teal-500/20 text-teal-400 hover:bg-teal-500/20 transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-teal-500/10 border border-teal-500/20 text-teal-400 active:bg-teal-500/20 transition-colors"
                 >
                   <div className="w-9 h-9 rounded-xl bg-teal-500/20 flex items-center justify-center shrink-0">
                     <Lock size={16} className="text-teal-400" />
@@ -404,7 +405,7 @@ export function MobileNav() {
               )}
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Bottom tab bar */}
