@@ -8,11 +8,11 @@ import { PinInput } from "@/components/pin-input";
 import {
   LayoutDashboard, Users, Package, CalendarCheck, ShoppingCart,
   DollarSign, PlusCircle, MoreHorizontal, X, Building2, Lock, Store,
-  UserCheck, ChevronRight, Archive, Receipt,
+  UserCheck, ChevronRight, Archive, Receipt, TrendingUp,
 } from "lucide-react";
 
 // Admin-only pages (require owner code)
-const ADMIN_HREFS = new Set(["/dashboard", "/products", "/pricing", "/expenses"]);
+const ADMIN_HREFS = new Set(["/dashboard", "/products", "/pricing", "/expenses", "/finance"]);
 
 function LockModal({ targetHref, onClose }: { targetHref: string; onClose: () => void }) {
   const { tryUnlock, isAdmin } = useAuth();
@@ -205,6 +205,7 @@ export function Sidebar() {
                 <NavLink href="/dashboard" label="Dashboard" icon={LayoutDashboard} />
                 <NavLink href="/pricing" label="Pricing" icon={DollarSign} />
                 <NavLink href="/expenses" label="Expenses" icon={Receipt} />
+                <NavLink href="/finance" label="Finance & P&L" icon={TrendingUp} />
               </div>
             </div>
           </>
@@ -276,6 +277,7 @@ export function MobileNav() {
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/pricing", label: "Pricing", icon: DollarSign },
       { href: "/expenses", label: "Expenses", icon: Receipt },
+      { href: "/finance", label: "Finance & P&L", icon: TrendingUp },
     ] : []),
   ];
 

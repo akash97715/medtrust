@@ -2,7 +2,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import dashboard, parties, products, visits, orders, pricing, auth, catalog, enquiries, stock, expenses
+from routers import dashboard, parties, products, visits, orders, pricing, auth, catalog, enquiries, stock, expenses, finance
 from database import execute
 
 app = FastAPI(title="MedTrust Healthcare API", version="2.0.0")
@@ -41,6 +41,7 @@ app.include_router(orders.router, prefix="/api/orders", tags=["orders"])
 app.include_router(pricing.router, prefix="/api/pricing", tags=["pricing"])
 app.include_router(stock.router, prefix="/api/stock", tags=["stock"])
 app.include_router(expenses.router, prefix="/api/expenses", tags=["expenses"])
+app.include_router(finance.router, prefix="/api/finance", tags=["finance"])
 
 
 @app.on_event("startup")

@@ -139,3 +139,7 @@ export const createExpense = (data: unknown) =>
   req("/api/expenses", { method: "POST", body: JSON.stringify(data) });
 export const deleteExpense = (id: string) =>
   req(`/api/expenses/${id}`, { method: "DELETE" });
+
+// Finance / P&L
+export const getFinanceOverall = () => req("/api/finance/overall");
+export const getFinanceMonthly = () => req("/api/finance/monthly");

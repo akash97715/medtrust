@@ -10,7 +10,7 @@ import { Lock } from "lucide-react";
 // Staff can access these (staff + admin)
 const STAFF_PREFIXES = ["/visits", "/visitors", "/admin", "/parties", "/catalog-admin", "/orders", "/products"];
 // Admin only
-const OWNER_PREFIXES = ["/dashboard", "/pricing", "/expenses"];
+const OWNER_PREFIXES = ["/dashboard", "/pricing", "/expenses", "/finance"];
 
 function requiredRole(pathname: string): "staff" | "admin" | null {
   if (OWNER_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"))) return "admin";
