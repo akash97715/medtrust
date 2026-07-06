@@ -58,61 +58,86 @@ function PnlBadge({ value, lg }: { value: number; lg?: boolean }) {
   );
 }
 
-// ── Overall summary tiles ─────────────────────────────────────────────────────
-function OverallTiles({ d }: { d: Overall }) {
-  const tiles = [
-    { label: "Total Billed",    labelHi: "कुल बिल",      value: fmtINR(d.revenue),    sub: `${d.total_orders} orders`,                                        color: "border-slate-200",                            num: "text-slate-800"    },
-    { label: "Cash Collected",  labelHi: "नकद प्राप्त",   value: fmtINR(d.collected),  sub: d.outstanding > 0 ? `${compact(d.outstanding)} outstanding` : "Fully collected",  color: "border-slate-200 hover:border-teal-200",      num: "text-teal-700"     },
-    { label: "Total Expenses",  labelHi: "कुल खर्च",      value: fmtINR(d.expenses),   sub: `COGS ${compact(d.cogs)} + Ops ${compact(d.expenses - d.cogs < 0 ? 0 : d.expenses)}`, color: "border-slate-200 hover:border-rose-200",      num: "text-rose-600"     },
-    { label: "Net Profit",      labelHi: "शुद्ध लाभ",     value: fmtINR(d.net_profit), sub: pct(d.net_profit, d.revenue) + " net margin",                      color: d.net_profit >= 0 ? "border-emerald-200 bg-emerald-50/30" : "border-red-200 bg-red-50/30", num: d.net_profit >= 0 ? "text-emerald-700" : "text-red-600" },
-  ];
-  return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      {tiles.map(t => (
-        <div key={t.label} className={`bg-white rounded-xl border ${t.color} p-5 transition-all hover:shadow-sm`}>
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">{t.label}</p>
-          <p className={`text-2xl font-bold tabular-nums leading-none ${t.num}`}>{t.value}</p>
-          <p className="text-xs text-slate-400 mt-2 font-medium">{t.sub}</p>
-          <p className="text-[10px] text-slate-300 mt-1">{t.labelHi}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
+// ── Overall summary ───────────────────────────────────────────────────────────
+function OverallSummary({ d }: { d: Overall }) {
+  const grossPct = pct(d.gross_profit, d.revenue);
+  const netPct   = pct(d.net_profit,   d.revenue);
+  const cogsPct  = pct(d.cogs,         d.revenue);
+  const collPct  = pct(d.collected,    d.revenue);
 
-// ── Gross profit / outstanding banner ────────────────────────────────────────
-function GrossBanner({ d }: { d: Overall }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 px-5 py-4 flex flex-wrap gap-x-8 gap-y-4 items-center">
-      <div>
-        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">Gross Profit (All Time)</p>
-        <div className="flex items-center gap-2.5">
-          <p className={`text-xl font-bold tabular-nums ${d.gross_profit >= 0 ? "text-emerald-700" : "text-red-600"}`}>{fmtINR(d.gross_profit)}</p>
-          <PnlBadge value={d.gross_profit} />
-          <span className="text-xs text-slate-400">{pct(d.gross_profit, d.revenue)} margin</span>
+    <div className="space-y-3">
+      {/* P&L chain: Revenue → COGS → Op.Expenses → Net Profit */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+
+        {/* Revenue */}
+        <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-sm transition-all">
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Revenue</p>
+          <p className="text-2xl font-bold tabular-nums text-slate-800">{fmtINR(d.revenue)}</p>
+          <p className="text-xs text-slate-400 mt-2">{d.total_orders} confirmed orders</p>
+          <p className="text-[10px] text-slate-300 mt-0.5">बिक्री</p>
         </div>
-        <p className="text-xs text-slate-400 mt-1">Revenue {compact(d.revenue)} − COGS {compact(d.cogs)}</p>
-      </div>
-      <div className="hidden lg:block h-10 w-px bg-slate-200" />
-      <div>
-        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">Net Profit (After Ops Expenses)</p>
-        <div className="flex items-center gap-2.5">
-          <p className={`text-xl font-bold tabular-nums ${d.net_profit >= 0 ? "text-emerald-700" : "text-red-600"}`}>{fmtINR(d.net_profit)}</p>
-          <PnlBadge value={d.net_profit} />
-          <span className="text-xs text-slate-400">{pct(d.net_profit, d.revenue)} margin</span>
+
+        {/* COGS */}
+        <div className="bg-white rounded-xl border border-slate-200 hover:border-rose-100 p-5 hover:shadow-sm transition-all">
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Cost of Goods (COGS)</p>
+          <p className="text-2xl font-bold tabular-nums text-rose-600">{fmtINR(d.cogs)}</p>
+          <p className="text-xs text-slate-400 mt-2">{cogsPct} of revenue · product cost</p>
+          <p className="text-[10px] text-slate-300 mt-0.5">माल की लागत</p>
         </div>
-        <p className="text-xs text-slate-400 mt-1">Gross {compact(d.gross_profit)} − Ops {compact(d.expenses)}</p>
-      </div>
-      {d.outstanding > 0 && (
-        <>
-          <div className="hidden lg:block h-10 w-px bg-slate-200" />
-          <div>
-            <p className="text-[11px] font-bold text-amber-500 uppercase tracking-widest mb-1">Outstanding Receivables</p>
-            <p className="text-xl font-bold text-amber-600 tabular-nums">{fmtINR(d.outstanding)}</p>
-            <p className="text-xs text-slate-400 mt-1">Billed but not yet collected</p>
+
+        {/* Op. Expenses */}
+        <div className="bg-white rounded-xl border border-slate-200 hover:border-rose-100 p-5 hover:shadow-sm transition-all">
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Op. Expenses</p>
+          <p className="text-2xl font-bold tabular-nums text-rose-500">{fmtINR(d.expenses)}</p>
+          <p className="text-xs text-slate-400 mt-2">Salary, transport, rent, logistics</p>
+          <p className="text-[10px] text-slate-300 mt-0.5">परिचालन व्यय</p>
+        </div>
+
+        {/* Net Profit */}
+        <div className={`rounded-xl border p-5 hover:shadow-sm transition-all ${d.net_profit >= 0 ? "bg-emerald-50/30 border-emerald-200" : "bg-red-50/30 border-red-200"}`}>
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Net Profit</p>
+          <div className="flex items-end gap-2 flex-wrap">
+            <p className={`text-2xl font-bold tabular-nums ${d.net_profit >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+              {fmtINR(d.net_profit)}
+            </p>
+            <PnlBadge value={d.net_profit} />
           </div>
-        </>
-      )}
+          <p className="text-xs text-slate-400 mt-2">{netPct} net · {grossPct} gross margin</p>
+          <p className="text-[10px] text-slate-300 mt-0.5">शुद्ध लाभ / हानि</p>
+        </div>
+      </div>
+
+      {/* Cash strip */}
+      <div className="bg-white rounded-xl border border-slate-200 px-5 py-4 flex flex-wrap gap-x-8 gap-y-3 items-center">
+        <div>
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">Cash Collected</p>
+          <div className="flex items-center gap-2">
+            <p className="text-lg font-bold text-teal-700 tabular-nums">{fmtINR(d.collected)}</p>
+            <span className="text-xs text-slate-400">{collPct} of revenue received</span>
+          </div>
+        </div>
+        <div className="hidden lg:block h-8 w-px bg-slate-200" />
+        <div>
+          <p className={`text-[11px] font-bold uppercase tracking-widest mb-1 ${d.outstanding > 0 ? "text-amber-500" : "text-slate-400"}`}>
+            Outstanding Receivables
+          </p>
+          <p className={`text-lg font-bold tabular-nums ${d.outstanding > 0 ? "text-amber-600" : "text-slate-400"}`}>
+            {d.outstanding > 0 ? fmtINR(d.outstanding) : "Fully collected ✓"}
+          </p>
+          {d.outstanding > 0 && <p className="text-xs text-slate-400 mt-0.5">Billed but not yet paid by hospitals</p>}
+        </div>
+        <div className="hidden lg:block h-8 w-px bg-slate-200" />
+        <div>
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">Gross Profit</p>
+          <div className="flex items-center gap-2">
+            <p className={`text-lg font-bold tabular-nums ${d.gross_profit >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+              {fmtINR(d.gross_profit)}
+            </p>
+            <span className="text-xs text-slate-400">{grossPct} · Revenue {compact(d.revenue)} − COGS {compact(d.cogs)}</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -120,40 +145,33 @@ function GrossBanner({ d }: { d: Overall }) {
 // ── Month accordion row ───────────────────────────────────────────────────────
 function MonthAccordion({ row, defaultOpen }: { row: MonthRow; defaultOpen: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
-  const isProfit = row.net_profit >= 0;
-  const grossPct = row.revenue ? Math.round((row.gross_profit / row.revenue) * 100) : 0;
+  const isProfit   = row.net_profit >= 0;
+  const grossPct   = row.revenue ? Math.round((row.gross_profit / row.revenue) * 100) : 0;
   const outstanding = Math.max(0, row.outstanding);
 
   return (
     <div className={`bg-white rounded-xl border overflow-hidden transition-all ${open ? (isProfit ? "border-emerald-200" : "border-red-200") : "border-slate-200 hover:border-slate-300"}`}>
 
-      {/* ── Collapsed / header row ── */}
+      {/* Collapsed / header row */}
       <button
         onClick={() => setOpen(v => !v)}
         className="w-full flex items-center gap-3 sm:gap-5 px-5 py-4 text-left hover:bg-slate-50/60 transition-colors"
       >
-        {/* Chevron */}
         <span className="text-slate-400 shrink-0">
           {open ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
         </span>
-
-        {/* Month name */}
         <div className="min-w-[130px]">
           <p className="text-sm font-bold text-slate-800">{monthLabel(row.month)}</p>
           {row.order_count > 0 && (
             <p className="text-[11px] text-slate-400">{row.order_count} order{row.order_count !== 1 ? "s" : ""}</p>
           )}
         </div>
-
-        {/* Net P&L — always visible */}
         <div className="flex items-center gap-2 shrink-0">
           <p className={`text-sm font-bold tabular-nums ${isProfit ? "text-emerald-700" : "text-red-600"}`}>
             {row.net_profit >= 0 ? "+" : ""}{compact(row.net_profit)}
           </p>
           <PnlBadge value={row.net_profit} />
         </div>
-
-        {/* Key numbers — hidden on small mobile, shown sm+ */}
         <div className="hidden sm:flex items-center gap-4 ml-auto text-right">
           <div>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Revenue</p>
@@ -172,27 +190,18 @@ function MonthAccordion({ row, defaultOpen }: { row: MonthRow; defaultOpen: bool
         </div>
       </button>
 
-      {/* ── Expanded P&L detail ── */}
+      {/* Expanded P&L detail */}
       {open && (
-        <div className="border-t border-slate-100 px-5 py-4 bg-slate-50/30 space-y-0">
-
+        <div className="border-t border-slate-100 px-5 py-4 bg-slate-50/30">
           <div className="max-w-md space-y-0 divide-y divide-slate-100">
-
-            {/* Revenue */}
             <div className="flex items-center justify-between py-2.5">
-              <div>
-                <p className="text-sm text-slate-600">Revenue <span className="text-slate-400 text-xs">(बिल)</span></p>
-              </div>
+              <p className="text-sm text-slate-600">Revenue <span className="text-slate-400 text-xs">(बिल)</span></p>
               <p className="text-sm font-semibold text-slate-800 tabular-nums">{fmtINR(row.revenue)}</p>
             </div>
-
-            {/* COGS */}
             <div className="flex items-center justify-between py-2.5 pl-4">
               <p className="text-sm text-slate-500">Cost of Goods (COGS)</p>
-              <p className="text-sm text-slate-600 tabular-nums">− {fmtINR(row.cogs)}</p>
+              <p className="text-sm text-rose-600 tabular-nums">− {fmtINR(row.cogs)}</p>
             </div>
-
-            {/* Gross profit */}
             <div className="flex items-center justify-between py-2.5 bg-white/70 rounded-lg px-2 -mx-2">
               <div>
                 <p className="text-sm font-bold text-slate-800">Gross Profit</p>
@@ -202,14 +211,10 @@ function MonthAccordion({ row, defaultOpen }: { row: MonthRow; defaultOpen: bool
                 {fmtINR(row.gross_profit)}
               </p>
             </div>
-
-            {/* Expenses */}
             <div className="flex items-center justify-between py-2.5 pl-4">
               <p className="text-sm text-slate-500">Operating Expenses</p>
-              <p className="text-sm text-slate-600 tabular-nums">− {fmtINR(row.expenses)}</p>
+              <p className="text-sm text-rose-500 tabular-nums">− {fmtINR(row.expenses)}</p>
             </div>
-
-            {/* Net profit */}
             <div className={`flex items-center justify-between py-3 border-t-2 mt-1 ${isProfit ? "border-emerald-200" : "border-red-200"}`}>
               <div className="flex items-center gap-2">
                 <p className="text-sm font-bold text-slate-800">Net Profit / Loss</p>
@@ -223,7 +228,6 @@ function MonthAccordion({ row, defaultOpen }: { row: MonthRow; defaultOpen: bool
             </div>
           </div>
 
-          {/* Cash position pills */}
           <div className="flex gap-3 pt-3 border-t border-slate-200 mt-2">
             <div className="flex-1 text-center px-3 py-2 bg-teal-50 border border-teal-100 rounded-lg">
               <p className="text-[10px] font-bold text-teal-600 uppercase tracking-wider">Collected</p>
@@ -236,7 +240,6 @@ function MonthAccordion({ row, defaultOpen }: { row: MonthRow; defaultOpen: bool
               </p>
             </div>
           </div>
-
         </div>
       )}
     </div>
@@ -263,25 +266,22 @@ export default function FinancePage() {
   return (
     <div className="space-y-5">
 
-      {/* Header */}
       <div>
         <h1 className="text-xl font-bold text-slate-800">Finance & P&L</h1>
-        <p className="text-sm text-slate-400 mt-0.5">वित्त · Profit & Loss — complete business picture</p>
+        <p className="text-sm text-slate-400 mt-0.5">
+          Complete picture: Revenue → COGS → Gross Profit → Op. Expenses → Net Profit
+        </p>
       </div>
 
-      {/* Overall tiles */}
       {loadingOverall ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {Array(4).fill(0).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {Array(4).fill(0).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
+          </div>
+          <Skeleton className="h-20 rounded-xl" />
         </div>
-      ) : o ? <OverallTiles d={o} /> : null}
+      ) : o ? <OverallSummary d={o} /> : null}
 
-      {/* Gross / net banner */}
-      {loadingOverall ? (
-        <Skeleton className="h-24 rounded-xl" />
-      ) : o ? <GrossBanner d={o} /> : null}
-
-      {/* Monthly accordion */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-bold text-slate-700 uppercase tracking-widest">Monthly Breakdown</h2>
