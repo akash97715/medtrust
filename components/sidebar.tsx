@@ -249,6 +249,32 @@ export function Sidebar() {
   );
 }
 
+// ── Mobile nav card tile ──────────────────────────────────────────────────────
+function NavCard({ href, label, icon: Icon, color, active, onClick }: {
+  href: string; label: string; icon: React.ElementType;
+  color: string; active: boolean; onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex flex-col items-center justify-center gap-2.5 rounded-2xl p-4 transition-all active:scale-95 text-center",
+        active
+          ? "bg-white/[0.12] ring-1 ring-teal-400/40"
+          : "bg-white/[0.04] hover:bg-white/[0.08]"
+      )}
+    >
+      <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center shadow-lg", color)}>
+        <Icon size={20} className="text-white" />
+      </div>
+      <span className={cn("text-[11px] font-semibold leading-tight", active ? "text-teal-300" : "text-white/70")}>
+        {label}
+      </span>
+      {active && <span className="w-1 h-1 rounded-full bg-teal-400 absolute bottom-2" />}
+    </button>
+  );
+}
+
 export function MobileNav() {
   const pathname = usePathname();
   const { isStaff, isAdmin } = useAuth();
@@ -265,70 +291,127 @@ export function MobileNav() {
     { href: "/company", label: "Company", icon: Building2 },
   ];
 
-  const moreLinks = [
-    ...(isStaff ? [
-      { href: "/visitors", label: "Visitors", icon: UserCheck },
-      { href: "/orders", label: "Orders", icon: ShoppingCart },
-      { href: "/products", label: "Products & Stock", icon: Archive },
-      { href: "/catalog-admin", label: "Manage Catalog", icon: Store },
-      { href: "/admin", label: "Add Data", icon: PlusCircle },
-    ] : []),
-    ...(isAdmin ? [
-      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/pricing", label: "Pricing", icon: DollarSign },
-      { href: "/expenses", label: "Expenses", icon: Receipt },
-      { href: "/finance", label: "Finance & P&L", icon: TrendingUp },
-    ] : []),
-  ];
+  const staffLinks = isStaff ? [
+    { href: "/visitors",    label: "Visitors",        icon: UserCheck,     color: "bg-blue-500 shadow-blue-500/30" },
+    { href: "/orders",      label: "Orders",          icon: ShoppingCart,  color: "bg-orange-500 shadow-orange-500/30" },
+    { href: "/products",    label: "Products & Stock",icon: Archive,       color: "bg-teal-600 shadow-teal-600/30" },
+    { href: "/catalog-admin",label: "Manage Catalog", icon: Store,         color: "bg-amber-500 shadow-amber-500/30" },
+    { href: "/admin",       label: "Add Data",        icon: PlusCircle,    color: "bg-teal-500 shadow-teal-500/30" },
+  ] : [];
 
-  const allMoreActive = moreLinks.some(({ href }) => pathname === href || pathname.startsWith(href));
+  const adminLinks = isAdmin ? [
+    { href: "/dashboard",   label: "Dashboard",       icon: LayoutDashboard, color: "bg-violet-500 shadow-violet-500/30" },
+    { href: "/pricing",     label: "Pricing",         icon: DollarSign,      color: "bg-emerald-500 shadow-emerald-500/30" },
+    { href: "/expenses",    label: "Expenses",        icon: Receipt,         color: "bg-rose-500 shadow-rose-500/30" },
+    { href: "/finance",     label: "Finance & P&L",   icon: TrendingUp,      color: "bg-indigo-500 shadow-indigo-500/30" },
+  ] : [];
 
-  const handleMoreLinkClick = (href: string) => {
+  const allMoreActive = [...staffLinks, ...adminLinks].some(
+    ({ href }) => pathname === href || pathname.startsWith(href + "/")
+  );
+
+  const handleNav = (href: string) => {
     setShowMore(false);
     router.push(href);
   };
 
   return (
     <>
-      {showMore && moreLinks.length > 0 && (
+      {/* Bottom sheet drawer */}
+      {showMore && (staffLinks.length > 0 || adminLinks.length > 0) && (
         <div
-          className="md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+          className="md:hidden fixed inset-0 z-40"
           onClick={() => setShowMore(false)}
         >
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+          {/* Sheet */}
           <div
-            className="absolute bottom-20 left-3 right-3 bg-[#0b1120] border border-white/[0.08] rounded-2xl overflow-hidden shadow-2xl"
+            className="absolute bottom-0 left-0 right-0 bg-[#0d1526] rounded-t-3xl shadow-2xl overflow-hidden"
+            style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
             onClick={(e) => e.stopPropagation()}
           >
-            {moreLinks.map(({ href, label, icon: Icon }) => {
-              const active = pathname === href || pathname.startsWith(href + "/");
-              return (
-                <button
-                  key={href}
-                  onClick={() => handleMoreLinkClick(href)}
-                  className={cn(
-                    "flex items-center gap-4 px-5 py-4 text-sm font-semibold border-b border-white/[0.06] last:border-0 transition-colors w-full text-left",
-                    active ? "text-teal-300 bg-white/[0.05]" : "text-white/65 hover:text-white hover:bg-white/[0.05]"
-                  )}
-                >
-                  <Icon size={18} className="shrink-0" />
-                  <span className="flex-1">{label}</span>
-                </button>
-              );
-            })}
-            {isStaff && !isAdmin && (
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-white/20" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3">
+              <div>
+                <p className="text-white font-bold text-[15px]">Navigation</p>
+                <p className="text-white/40 text-[11px] mt-0.5">
+                  {isAdmin ? "Admin · Staff" : "Staff"} menu
+                </p>
+              </div>
               <button
-                onClick={() => { setShowMore(false); setLockModal("/dashboard"); }}
-                className="flex items-center gap-4 px-5 py-4 text-sm font-semibold border-t border-white/[0.06] w-full text-left text-teal-400/70 hover:text-teal-300 hover:bg-white/[0.03] transition-colors"
+                onClick={() => setShowMore(false)}
+                className="w-8 h-8 rounded-full bg-white/[0.08] flex items-center justify-center text-white/50 hover:text-white transition-colors"
               >
-                <Lock size={18} className="shrink-0" />
-                <span className="flex-1">Admin access</span>
+                <X size={14} />
               </button>
-            )}
+            </div>
+
+            <div className="px-4 pb-2 space-y-4">
+              {/* Staff section */}
+              {staffLinks.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/30 px-1 mb-2.5">Staff</p>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {staffLinks.map(({ href, label, icon, color }) => (
+                      <NavCard
+                        key={href} href={href} label={label} icon={icon} color={color}
+                        active={pathname === href || pathname.startsWith(href + "/")}
+                        onClick={() => handleNav(href)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Admin section */}
+              {adminLinks.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/30 px-1 mb-2.5">Admin</p>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {adminLinks.map(({ href, label, icon, color }) => (
+                      <NavCard
+                        key={href} href={href} label={label} icon={icon} color={color}
+                        active={pathname === href || pathname.startsWith(href + "/")}
+                        onClick={() => handleNav(href)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Admin unlock (staff only) */}
+              {isStaff && !isAdmin && (
+                <button
+                  onClick={() => { setShowMore(false); setLockModal("/dashboard"); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-teal-500/10 border border-teal-500/20 text-teal-400 hover:bg-teal-500/20 transition-colors"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-teal-500/20 flex items-center justify-center shrink-0">
+                    <Lock size={16} className="text-teal-400" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-bold">Admin Access</p>
+                    <p className="text-[11px] text-teal-400/60 mt-0.5">Enter owner code to unlock</p>
+                  </div>
+                  <ChevronRight size={15} className="ml-auto text-teal-400/50" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0b1120] border-t border-white/[0.07] flex justify-around px-2 pt-2" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
+      {/* Bottom tab bar */}
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0b1120] border-t border-white/[0.07] flex justify-around px-2 pt-2"
+        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+      >
         {primaryLinks.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
@@ -336,8 +419,8 @@ export function MobileNav() {
               key={href}
               href={href}
               className={cn(
-                "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-semibold transition-all active:scale-95 active:opacity-70",
-                active ? "text-teal-400 bg-white/[0.05]" : "text-white/60 hover:text-white"
+                "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-semibold transition-all active:scale-95",
+                active ? "text-teal-400 bg-white/[0.05]" : "text-white/55 hover:text-white"
               )}
             >
               <Icon size={18} />
@@ -346,25 +429,27 @@ export function MobileNav() {
           );
         })}
 
-        {/* Staff/Admin unlock or More */}
         {!isStaff ? (
           <button
             onClick={() => setLockModal("/visitors")}
-            className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-semibold text-white/25 hover:text-white/55 transition-all active:scale-95 active:opacity-70"
+            className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-semibold text-white/25 hover:text-white/55 transition-all active:scale-95"
           >
             <Lock size={18} />
             Staff
           </button>
-        ) : moreLinks.length > 0 ? (
+        ) : (staffLinks.length > 0 || adminLinks.length > 0) ? (
           <button
             onClick={() => setShowMore((v) => !v)}
             className={cn(
-              "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-semibold transition-all active:scale-95 active:opacity-70",
-              showMore || allMoreActive ? "text-teal-400 bg-white/[0.05]" : "text-white/60 hover:text-white"
+              "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl text-[10px] font-semibold transition-all active:scale-95 relative",
+              showMore || allMoreActive ? "text-teal-400 bg-white/[0.05]" : "text-white/55 hover:text-white"
             )}
           >
             {showMore ? <X size={18} /> : <MoreHorizontal size={18} />}
             More
+            {allMoreActive && !showMore && (
+              <span className="absolute top-1 right-2.5 w-1.5 h-1.5 rounded-full bg-teal-400" />
+            )}
           </button>
         ) : null}
       </nav>
