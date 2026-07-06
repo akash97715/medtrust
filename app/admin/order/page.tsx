@@ -139,8 +139,11 @@ function ItemRow({
                 onChange(item.id, { product_id: v, unit_of_measure: prod?.unit_of_measure || item.unit_of_measure });
               }}
             >
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="Select product…" />
+              <SelectTrigger className="h-9 text-sm w-full">
+                {item.product_id
+                  ? <span>{product?.product_name ?? item.product_id}</span>
+                  : <span className="text-muted-foreground">Select product…</span>
+                }
               </SelectTrigger>
               <SelectContent>
                 {products.map((p) => (
@@ -440,7 +443,12 @@ export default function AddOrderPage() {
             <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Party *</label>
             {lp ? <Skeleton className="h-10" /> : (
               <Select value={partyId} onValueChange={(v) => v && setPartyId(v)}>
-                <SelectTrigger><SelectValue placeholder="Select hospital / clinic / agency…" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  {partyId
+                    ? <span>{String((parties as Record<string, unknown>[] ?? []).find(p => String(p.party_id) === partyId)?.party_name ?? partyId)}</span>
+                    : <span className="text-muted-foreground">Select hospital / clinic / agency…</span>
+                  }
+                </SelectTrigger>
                 <SelectContent>
                   {(parties as Record<string, unknown>[] ?? []).map((p) => (
                     <SelectItem key={String(p.party_id)} value={String(p.party_id)}>

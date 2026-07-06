@@ -2,14 +2,14 @@
 import { useState, useMemo, useEffect, useRef, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
-import { getStock, getStockHistory, updateStock } from "@/lib/api";
+import { getStock, getStockHistory, updateStock, getProduct, updateProduct } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { Search, Pencil, X, Check, ChevronDown, ChevronUp, PackageCheck, Info, Plus } from "lucide-react";
 import Link from "next/link";
-import { Search, Pencil, X, Check, ChevronDown, ChevronUp, Plus, PackageCheck, Info } from "lucide-react";
 
 type StockRow = {
   product_id: string;
@@ -138,6 +138,11 @@ function ProductsContent() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newQty, setNewQty] = useState("");
   const [editNote, setEditNote] = useState("");
+  const [editingDetailsId, setEditingDetailsId] = useState<string | null>(null);
+  const [detailDraft, setDetailDraft] = useState<{
+    product_name: string; hindi_name: string;
+    product_category: string; unit_of_measure: string; preferred_brand: string;
+  } | null>(null);
   const autoEditApplied = useRef(false);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -162,6 +167,36 @@ function ProductsContent() {
       qc.invalidateQueries({ queryKey: ["stock"] });
       qc.invalidateQueries({ queryKey: ["stock-history"] });
       setEditingId(null); setNewQty(""); setEditNote("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // Fetch full product details when detail-edit panel opens
+  const { data: productDetail, isLoading: loadingDetail } = useQuery({
+    queryKey: ["product", editingDetailsId],
+    queryFn: () => getProduct(editingDetailsId!),
+    enabled: !!editingDetailsId,
+    staleTime: 0,
+  });
+  useEffect(() => {
+    if (!productDetail) return;
+    const p = productDetail as Record<string, unknown>;
+    setDetailDraft({
+      product_name:     String(p.product_name     ?? ""),
+      hindi_name:       String(p.hindi_name       ?? ""),
+      product_category: String(p.product_category ?? ""),
+      unit_of_measure:  String(p.unit_of_measure  ?? "piece"),
+      preferred_brand:  String(p.preferred_brand  ?? ""),
+    });
+  }, [productDetail]);
+
+  const detailMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: unknown }) => updateProduct(id, data),
+    onSuccess: () => {
+      toast.success("Product updated");
+      qc.invalidateQueries({ queryKey: ["stock"] });
+      qc.invalidateQueries({ queryKey: ["products"] });
+      setEditingDetailsId(null); setDetailDraft(null);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -195,8 +230,28 @@ function ProductsContent() {
   const okCount   = rows.filter(r => r.stock_quantity > 5).length;
   const noneCount = rows.filter(r => r.last_updated_at === null).length;
 
-  function startEdit(row: StockRow) { setEditingId(row.product_id); setNewQty(String(row.stock_quantity)); setEditNote(""); }
+  function startEdit(row: StockRow) {
+    setEditingDetailsId(null); setDetailDraft(null);
+    setEditingId(row.product_id); setNewQty(String(row.stock_quantity)); setEditNote("");
+  }
   function cancelEdit() { setEditingId(null); setNewQty(""); setEditNote(""); }
+
+  function startDetailEdit(row: StockRow) {
+    cancelEdit();
+    setDetailDraft(null);
+    setEditingDetailsId(row.product_id);
+  }
+  function cancelDetailEdit() { setEditingDetailsId(null); setDetailDraft(null); }
+  function saveDetailEdit(id: string) {
+    if (!detailDraft?.product_name?.trim()) { toast.error("Product name is required"); return; }
+    detailMutation.mutate({ id, data: {
+      product_name:     detailDraft.product_name.trim(),
+      hindi_name:       detailDraft.hindi_name     || undefined,
+      product_category: detailDraft.product_category || undefined,
+      unit_of_measure:  detailDraft.unit_of_measure  || "piece",
+      preferred_brand:  detailDraft.preferred_brand  || undefined,
+    }});
+  }
 
   // Auto-open edit panel when ?edit=<id> is in the URL (coming from Add Product duplicate warning)
   useEffect(() => {
@@ -304,12 +359,12 @@ function ProductsContent() {
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
 
         {/* Table header */}
-        <div className="hidden sm:grid grid-cols-[2fr_72px_1fr_1fr_52px] gap-4 px-5 py-3 bg-slate-50 border-b border-slate-200">
+        <div className="hidden sm:grid grid-cols-[2fr_80px_180px_1fr_176px] gap-4 px-5 py-3 bg-slate-50 border-b border-slate-200">
           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Product</span>
           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Unit</span>
           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Stock</span>
           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Last Updated</span>
-          <span />
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</span>
         </div>
 
         {isLoading ? (
@@ -330,8 +385,8 @@ function ProductsContent() {
               <div key={row.product_id} id={`product-row-${row.product_id}`} className="border-b border-slate-100 last:border-0">
 
                 {/* Main row */}
-                <div className={`grid grid-cols-1 sm:grid-cols-[2fr_72px_1fr_1fr_52px] gap-2 sm:gap-4 px-5 py-4 items-center transition-colors ${
-                  isEditing ? "bg-teal-50/50" : "hover:bg-slate-50/60"
+                <div className={`grid grid-cols-1 sm:grid-cols-[2fr_80px_180px_1fr_176px] gap-2 sm:gap-4 px-5 py-4 items-center transition-colors ${
+                  isEditing ? "bg-teal-50/50" : editingDetailsId === row.product_id ? "bg-indigo-50/50" : "hover:bg-slate-50/60"
                 }`}>
 
                   {/* Product name */}
@@ -343,15 +398,27 @@ function ProductsContent() {
                         {row.product_category}
                       </span>
                     )}
+                    {/* Mobile-only edit details button (admin) */}
+                    {isAdmin && (
+                      <button
+                        onClick={() => editingDetailsId === row.product_id ? cancelDetailEdit() : startDetailEdit(row)}
+                        className={`sm:hidden mt-1.5 flex items-center gap-1 text-[11px] font-semibold transition-colors ${
+                          editingDetailsId === row.product_id ? "text-indigo-500" : "text-slate-400 hover:text-indigo-500"
+                        }`}
+                      >
+                        {editingDetailsId === row.product_id ? <X size={10} /> : <Pencil size={10} />}
+                        {editingDetailsId === row.product_id ? "Cancel edit" : "Edit details"}
+                      </button>
+                    )}
                   </div>
 
-                  {/* Unit */}
+                  {/* Unit — desktop only */}
                   <div className="hidden sm:block">
-                    <span className="text-xs text-slate-500">{row.unit_of_measure}</span>
+                    <span className="text-xs text-slate-500 font-medium">{row.unit_of_measure}</span>
                   </div>
 
-                  {/* Stock */}
-                  <div className="flex items-center gap-2.5 flex-wrap mt-1 sm:mt-0">
+                  {/* Stock status — indicators only on desktop; mobile adds inline Update */}
+                  <div className="flex items-center gap-2 flex-wrap mt-1 sm:mt-0">
                     <span className={`w-2 h-2 rounded-full shrink-0 ${lvl.dot}`} />
                     {row.last_updated_at !== null ? (
                       <span className={`text-sm font-bold tabular-nums ${lvl.num}`}>{row.stock_quantity}</span>
@@ -361,12 +428,11 @@ function ProductsContent() {
                     <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${lvl.badge}`}>
                       {row.last_updated_at ? lvl.en : "Not set"}
                     </span>
+                    {/* Mobile-only Update button */}
                     <button
                       onClick={() => isEditing ? cancelEdit() : startEdit(row)}
-                      className={`ml-auto sm:ml-0 flex items-center gap-1 text-xs font-semibold transition-colors shrink-0 ${
-                        isEditing
-                          ? "text-slate-400 hover:text-slate-600"
-                          : "text-teal-600 hover:text-teal-800 hover:underline underline-offset-2"
+                      className={`sm:hidden ml-auto flex items-center gap-1 text-xs font-semibold transition-colors shrink-0 ${
+                        isEditing ? "text-slate-400 hover:text-slate-600" : "text-teal-600 hover:text-teal-800"
                       }`}
                     >
                       {isEditing ? <X size={12} /> : <Pencil size={11} />}
@@ -374,7 +440,7 @@ function ProductsContent() {
                     </button>
                   </div>
 
-                  {/* Last updated */}
+                  {/* Last updated — desktop only */}
                   <div className="hidden sm:block">
                     {row.last_updated_at ? (
                       <div>
@@ -389,23 +455,114 @@ function ProductsContent() {
                     )}
                   </div>
 
-                  {/* Admin pencil */}
-                  {isAdmin ? (
-                    <div className="hidden sm:flex justify-center">
-                      <Link
-                        href={`/products/${row.product_id}/edit`}
-                        className="text-slate-300 hover:text-slate-600 transition-colors p-1.5 rounded-md hover:bg-slate-100"
-                        title="Edit product"
+                  {/* Actions — desktop only: Update stock + Edit details */}
+                  <div className="hidden sm:flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => isEditing ? cancelEdit() : startEdit(row)}
+                      className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${
+                        isEditing
+                          ? "text-slate-500 border-slate-200 bg-white hover:bg-slate-50"
+                          : "text-teal-700 border-teal-200 bg-teal-50 hover:bg-teal-100"
+                      }`}
+                    >
+                      {isEditing ? <X size={11} /> : <Pencil size={11} />}
+                      {isEditing ? "Cancel" : "Update"}
+                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => editingDetailsId === row.product_id ? cancelDetailEdit() : startDetailEdit(row)}
+                        className={`p-1.5 rounded-md border transition-colors ${
+                          editingDetailsId === row.product_id
+                            ? "text-indigo-500 border-indigo-200 bg-indigo-50 hover:bg-indigo-100"
+                            : "text-slate-400 border-slate-200 bg-white hover:text-slate-600 hover:bg-slate-50"
+                        }`}
+                        title={editingDetailsId === row.product_id ? "Cancel edit" : "Edit product details"}
                       >
-                        <Pencil size={12} />
-                      </Link>
-                    </div>
-                  ) : (
-                    <div className="hidden sm:block" />
-                  )}
+                        {editingDetailsId === row.product_id ? <X size={12} /> : <Pencil size={12} />}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                {/* Inline edit panel */}
+                {/* Inline details edit panel */}
+                {editingDetailsId === row.product_id && (
+                  <div className="px-5 pb-5 pt-4 border-t border-indigo-100 bg-indigo-50/40">
+                    {loadingDetail || !detailDraft ? (
+                      <div className="space-y-2">
+                        {Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-9 rounded-lg" />)}
+                      </div>
+                    ) : (
+                      <div className="max-w-lg space-y-4">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Pencil size={11} className="text-indigo-400" />
+                          <p className="text-xs font-bold text-indigo-700 uppercase tracking-wider">Edit product details</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="sm:col-span-2 space-y-1">
+                            <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Product Name *</label>
+                            <Input
+                              value={detailDraft.product_name}
+                              onChange={e => setDetailDraft(d => d ? { ...d, product_name: e.target.value } : d)}
+                              className="bg-white border-slate-300 focus-visible:ring-indigo-500"
+                              autoFocus
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Hindi Name</label>
+                            <Input
+                              value={detailDraft.hindi_name}
+                              onChange={e => setDetailDraft(d => d ? { ...d, hindi_name: e.target.value } : d)}
+                              className="bg-white border-slate-300 focus-visible:ring-indigo-500"
+                              placeholder="हिंदी नाम"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Category</label>
+                            <Input
+                              value={detailDraft.product_category}
+                              onChange={e => setDetailDraft(d => d ? { ...d, product_category: e.target.value } : d)}
+                              className="bg-white border-slate-300 focus-visible:ring-indigo-500"
+                              placeholder="e.g. Infusion"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Unit of Measure</label>
+                            <Input
+                              value={detailDraft.unit_of_measure}
+                              onChange={e => setDetailDraft(d => d ? { ...d, unit_of_measure: e.target.value } : d)}
+                              className="bg-white border-slate-300 focus-visible:ring-indigo-500"
+                              placeholder="piece, box, pack…"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Preferred Brand</label>
+                            <Input
+                              value={detailDraft.preferred_brand}
+                              onChange={e => setDetailDraft(d => d ? { ...d, preferred_brand: e.target.value } : d)}
+                              className="bg-white border-slate-300 focus-visible:ring-indigo-500"
+                              placeholder="e.g. Romson"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 pt-1">
+                          <Button
+                            onClick={() => saveDetailEdit(row.product_id)}
+                            disabled={detailMutation.isPending}
+                            className="bg-indigo-600 hover:bg-indigo-700 h-9 text-sm px-5 font-semibold"
+                          >
+                            <Check size={13} className="mr-1.5" />
+                            {detailMutation.isPending ? "Saving…" : "Save Details"}
+                          </Button>
+                          <Button variant="outline" onClick={cancelDetailEdit} className="h-9 text-sm px-4">
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Inline stock edit panel */}
                 {isEditing && (
                   <div className="px-5 pb-5 pt-4 border-t border-teal-100 bg-teal-50/40">
                     <div className="max-w-sm space-y-4">

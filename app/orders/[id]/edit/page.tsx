@@ -168,7 +168,12 @@ function AddItemInline({ orderId, onAdded }: { orderId: string; onAdded: () => v
             if (prod?.unit_of_measure) setUnit(prod.unit_of_measure);
           }}
         >
-          <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select product…" /></SelectTrigger>
+          <SelectTrigger className="h-9 text-sm w-full">
+            {productId
+              ? <span>{products.find(p => p.product_id === productId)?.product_name ?? productId}</span>
+              : <span className="text-muted-foreground">Select product…</span>
+            }
+          </SelectTrigger>
           <SelectContent>
             {products.map((p) => <SelectItem key={p.product_id} value={p.product_id}>{p.product_name}</SelectItem>)}
           </SelectContent>
